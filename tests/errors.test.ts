@@ -8,10 +8,10 @@ import {
   MicaValidationError,
   object,
   string,
-} from '../src/index.js';
-import { bindCollection } from '../src/collection.js';
-import { encodeDocument } from '../src/codec.js';
-import { encodeUpdate } from '../src/update.js';
+} from '../packages/db/src/index.js';
+import { bindCollection } from '../packages/db/src/collection.js';
+import { encodeDocument } from '../packages/db/src/codec.js';
+import { encodeUpdate } from '../packages/db/src/update.js';
 
 const fields = {
   profile: object({ rows: array(object({ name: string() })) }),

@@ -14,7 +14,7 @@ import {
   objectId,
   string,
   type IndexField,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const fields = {
   _id: objectId().auto(),

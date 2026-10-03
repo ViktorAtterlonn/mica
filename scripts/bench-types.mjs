@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { writeConsumer } from './consumer-fixture.mjs';
+import { packPackage } from './pack.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const versions = ['5.9.3', '6.0.3', '7.0.2'];
@@ -32,7 +33,10 @@ function copyFixtures(source, target) {
     else if (entry.name.endsWith('.ts')) {
       writeFileSync(
         to,
-        readFileSync(from, 'utf8').replace(/(['"])(?:\.\.\/)+src\/index\.js\1/g, "'mica-mongodb'"),
+        readFileSync(from, 'utf8').replace(
+          /(['"])(?:\.\.\/)+packages\/db\/src\/index\.js\1/g,
+          "'@mica/db'",
+        ),
       );
     }
   }
@@ -49,19 +53,14 @@ for (const version of selected) {
     passed: false,
   };
   try {
-    const [packed] = JSON.parse(
-      execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temporary], {
-        cwd: root,
-        encoding: 'utf8',
-      }),
-    );
+    const packed = packPackage('db', temporary);
     writeFileSync(
       join(temporary, 'package.json'),
       JSON.stringify({
         private: true,
         type: 'module',
         dependencies: {
-          'mica-mongodb': `file:./${packed.filename}`,
+          '@mica/db': `file:./${packed.filename}`,
           mongodb: report.mongodb,
           typescript: version,
           '@types/node': '22.20.4',
@@ -91,7 +90,7 @@ for (const version of selected) {
       join(temporary, 'runtime.mjs'),
       `
 import assert from 'node:assert/strict';
-import { collection, createDatabase, jsonSchema, string } from 'mica-mongodb';
+import { collection, createDatabase, jsonSchema, string } from '@mica/db';
 const Records = collection('records', { _id: string() });
 assert.equal(jsonSchema(Records).$jsonSchema.properties._id.bsonType, 'string');
 const db = createDatabase({ uri: 'mongodb://127.0.0.1:1', database: 'unused', collections: { records: Records } });
@@ -170,8 +169,8 @@ await db.close();
       writeFileSync(
         join(contracts, 'tests', name),
         readFileSync(join(root, 'tests', name), 'utf8').replaceAll(
-          "'../src/index.js'",
-          "'mica-mongodb'",
+          "'../packages/db/src/index.js'",
+          "'@mica/db'",
         ),
       );
     }

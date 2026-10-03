@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { array, customType, map, number, object, string } from '../src/index.js';
-import { checkFilter } from '../src/filter.js';
-import { encodeDocument, decodeDocument } from '../src/codec.js';
-import { encodeUpdate } from '../src/update.js';
-import { readProjection } from '../src/projection.js';
+import { array, customType, map, number, object, string } from '../packages/db/src/index.js';
+import { checkFilter } from '../packages/db/src/filter.js';
+import { encodeDocument, decodeDocument } from '../packages/db/src/codec.js';
+import { encodeUpdate } from '../packages/db/src/update.js';
+import { readProjection } from '../packages/db/src/projection.js';
 
 const now = new Date();
 test('maps validate dynamic keys, encode entries, and preserve defaults and decoding', () => {

@@ -15,7 +15,7 @@ import {
   objectId,
   string,
   timestamps,
-} from 'mica-mongodb';
+} from '@mica/db';
 import { encrypted } from '../examples/fields/encrypted.js';
 
 const translatable = customType({
@@ -102,7 +102,8 @@ try {
 [examples/quickstart.ts](../examples/quickstart.ts) is an executable demonstration that creates and deletes its own uniquely named database:
 
 ```sh
-MICA_EXAMPLE_URI=mongodb://127.0.0.1:27017 npx tsx examples/quickstart.ts
+pnpm run build
+MICA_EXAMPLE_URI=mongodb://127.0.0.1:27017 pnpm exec tsx examples/quickstart.ts
 ```
 
 ### Field vocabulary
@@ -173,7 +174,7 @@ Import `index` from Mica with the field builders. Keys default to ascending; `.a
 await db.client.db('example').collection(Articles.$name).createIndexes(Articles.$indexes);
 ```
 
-Neither importing a schema nor connecting creates indexes. No automatic synchronization, dropping, or rebuilding is provided. Existing deployments must assess index changes and resolve duplicate data before creating unique indexes.
+Neither importing a schema nor connecting creates indexes. The explicit [CLI](cli.md) provides `mica check`, `mica diff`, and confirmed `mica push` for validators and indexes. Existing deployments must review index ownership and changes and resolve duplicate data before creating unique indexes.
 
 Partial filters are typed against **stored values**, including fields outside the index keys. They do not invoke defaults, codecs, or application validation. Supported predicates are equality, `$eq`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$exists: true`, `$type` aliases, `$and`, and `$or`. Runtime checks reject unknown paths, unsupported operators, duplicate names/keys, and sparse/partial combinations. MongoDB remains responsible for data-dependent and server-specific restrictions such as parallel arrays in compound multikey indexes. See [MongoDB's partial index documentation](https://www.mongodb.com/docs/manual/core/index-partial/).
 
@@ -301,7 +302,7 @@ Input validation throws `MicaValidationError` with a stable `code` and field/ope
 Embedded-object removal and typed array filters use element-relative predicates:
 
 ```ts
-import { arrayFilter } from 'mica-mongodb';
+import { arrayFilter } from '@mica/db';
 
 await db.products.updateOne({ _id: productId }, { $pull: { variants: { sku: 'retired' } } });
 

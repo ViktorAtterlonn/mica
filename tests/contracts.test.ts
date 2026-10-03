@@ -12,11 +12,11 @@ import {
   object,
   objectId,
   string,
-} from '../src/index.js';
-import { checkFilter } from '../src/filter.js';
-import { encodeDocument } from '../src/codec.js';
-import { encodeUpdate } from '../src/update.js';
-import { prepareFilter } from '../src/query-options.js';
+} from '../packages/db/src/index.js';
+import { checkFilter } from '../packages/db/src/filter.js';
+import { encodeDocument } from '../packages/db/src/codec.js';
+import { encodeUpdate } from '../packages/db/src/update.js';
+import { prepareFilter } from '../packages/db/src/query-options.js';
 
 test('filter values cannot silently disappear or become null during BSON serialization', () => {
   const fields = { name: string(), rows: array(object({ name: string() })) };

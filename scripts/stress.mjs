@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import { packPackage } from './pack.mjs';
 
 const mode = process.argv[2];
 assert(
@@ -51,8 +52,24 @@ for (const signal of ['SIGINT', 'SIGTERM'])
   });
 
 try {
-  for (const name of ['package.json', 'package-lock.json', 'dist'])
-    cpSync(join(root, name), join(stage, name), { recursive: true });
+  const packed = packPackage('db', stage);
+  const databaseManifest = JSON.parse(readFileSync(join(root, 'packages/db/package.json'), 'utf8'));
+  writeFileSync(
+    join(stage, 'package.json'),
+    JSON.stringify({
+      private: true,
+      type: 'module',
+      dependencies: {
+        '@mica/db': `file:./${packed.filename}`,
+        mongodb: databaseManifest.dependencies.mongodb,
+      },
+    }),
+  );
+  execFileSync(
+    'npm',
+    ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'],
+    { cwd: stage, stdio: 'pipe' },
+  );
   cpSync(join(root, 'tests', 'stress'), join(stage, 'tests', 'stress'), { recursive: true });
   mkdirSync(join(stage, 'control'));
   docker('network', 'create', run);

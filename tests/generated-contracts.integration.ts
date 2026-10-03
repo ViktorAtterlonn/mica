@@ -18,10 +18,10 @@ import {
   objectId,
   string,
   type AnyField,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const uri = process.env.MICA_TEST_URI;
-if (!uri) throw new Error('Use npm run test:integration for an isolated MongoDB container');
+if (!uri) throw new Error('Use pnpm run test:integration for an isolated MongoDB container');
 
 const kinds = ['text', 'number', 'boolean', 'date', 'objectId', 'binary', 'enum', 'codec'] as const;
 const layouts = ['scalar', 'object', 'array', 'map'] as const;
@@ -132,7 +132,7 @@ test('generated schema, projection and write contracts agree with independent na
   t.after(() => native.close());
   const database = 'mica_generated_contracts';
   t.diagnostic(
-    `Replay: MICA_GENERATED_SEED=${seed} MICA_GENERATED_CASE=<case> npm run test:generated`,
+    `Replay: MICA_GENERATED_SEED=${seed} MICA_GENERATED_CASE=<case> pnpm run test:generated`,
   );
 
   for (let caseId = 0; caseId < cases; caseId++) {

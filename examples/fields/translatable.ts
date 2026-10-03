@@ -1,4 +1,4 @@
-import { customType, string } from '../../src/index.js';
+import { customType, string } from '@mica/db';
 
 export const translatable = customType({
   base: string,

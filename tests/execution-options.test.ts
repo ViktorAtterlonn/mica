@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MicaValidationError } from '../src/index.js';
-import { prepareQueryOptions } from '../src/query-options.js';
+import { MicaValidationError } from '../packages/db/src/index.js';
+import { prepareQueryOptions } from '../packages/db/src/query-options.js';
 
 test('execution budgets validate and abort signals keep their identity and reason', () => {
   const controller = new AbortController();

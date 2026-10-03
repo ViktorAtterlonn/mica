@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { MongoClient } from 'mongodb';
-import { collection, createDatabase, string } from '../src/index.js';
+import { collection, createDatabase, string } from '../packages/db/src/index.js';
 
 function deferred() {
   let resolve!: () => void;

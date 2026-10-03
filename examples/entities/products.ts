@@ -8,7 +8,7 @@ import {
   objectId,
   string,
   timestamps,
-} from '../../src/index.js';
+} from '@mica/db';
 
 import { encrypted } from '../fields/encrypted.js';
 import { translatable } from '../fields/translatable.js';

@@ -10,7 +10,7 @@ import {
   object,
   objectId,
   string,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const encrypted = customType({
   base: string,

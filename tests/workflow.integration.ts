@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ObjectId } from 'mongodb';
-import { jsonSchema } from '../src/index.js';
+import { jsonSchema } from '../packages/db/src/index.js';
 import { Tasks } from '../examples/entities/tasks.js';
 import { TaskEvents } from '../examples/entities/task-events.js';
 import { completeTask, createTaskDatabase } from '../examples/workflows/complete-task.js';
 
 const uri = process.env.MICA_TEST_URI;
-if (!uri) throw new Error('Use npm run test:integration for isolated MongoDB');
+if (!uri) throw new Error('Use pnpm run test:integration for isolated MongoDB');
 
 test('task completion commits once and rolls back when its outbox write fails', async (t) => {
   const db = createTaskDatabase(uri, 'mica_workflow');

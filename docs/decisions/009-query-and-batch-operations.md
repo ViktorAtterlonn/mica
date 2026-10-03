@@ -4,7 +4,7 @@
 
 The collection interface now exposes `find`, `findOne`, `exists`, `countDocuments`, `insertOne`, `insertMany`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `findOneAndUpdate`, `findOneAndDelete`, and `bulkWrite`.
 
-Collection operations live in `src/collection.ts`; `src/database.ts` owns connection lifecycle and binding. Every method uses the same field definitions, filter checks, insertion/update codecs, explicit projection checks, and immutable-path enforcement. Options are explicitly supported and validated rather than forwarded wholesale to the driver. The raw MongoClient remains the deliberate escape route.
+Collection operations live in `packages/db/src/collection.ts`; `packages/db/src/database.ts` owns connection lifecycle and binding. Every method uses the same field definitions, filter checks, insertion/update codecs, explicit projection checks, and immutable-path enforcement. Options are explicitly supported and validated rather than forwarded wholesale to the driver. The raw MongoClient remains the deliberate escape route.
 
 ## Reads and cursors
 

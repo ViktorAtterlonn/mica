@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 
-import { discoverMetadata, jsonSchema } from '../src/index.js';
+import { discoverMetadata, jsonSchema } from '@mica/db';
 import { createExampleDatabase } from './database.js';
 import { Products, type NewProduct } from './entities/products.js';
 

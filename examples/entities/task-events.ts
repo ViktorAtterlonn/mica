@@ -1,4 +1,4 @@
-import { collection, date, enum_, objectId, string } from '../../src/index.js';
+import { collection, date, enum_, objectId, string } from '@mica/db';
 
 export const TaskEvents = collection('task_events', {
   _id: string().immutable(),

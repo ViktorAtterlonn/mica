@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { Binary } from 'mongodb';
 
-import { customType, string } from '../../src/index.js';
+import { customType, string } from '@mica/db';
 
 // Demo-only process-local key. Use a stable application-managed key for persisted data.
 const key = randomBytes(32);

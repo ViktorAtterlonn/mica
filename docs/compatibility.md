@@ -19,9 +19,9 @@ Consumer projects use `NodeNext`, ES2022, `strict`, `exactOptionalPropertyTypes`
 ## Installed-package consumers
 
 ```sh
-npm run bench:types
-MICA_TYPESCRIPT=5.9.3 npm run bench:types
-npm run test:compatibility
+pnpm run bench:types
+MICA_TYPESCRIPT=5.9.3 pnpm run bench:types
+pnpm run test:compatibility
 ```
 
 `bench:types` defaults to TypeScript 7.0.2. `test:compatibility` runs all three pinned compilers. Both build the library first. These commands require npm registry access and install dependencies in temporary directories; they neither publish the package nor connect to a database.

@@ -10,8 +10,8 @@ import {
   object,
   objectId,
   string,
-} from '../src/index.js';
-import { prepareAggregateFilter } from '../src/aggregate-filter.js';
+} from '../packages/db/src/index.js';
+import { prepareAggregateFilter } from '../packages/db/src/aggregate-filter.js';
 
 const id = new ObjectId();
 const hex = id.toHexString();

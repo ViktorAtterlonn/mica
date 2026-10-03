@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Collection, Document } from 'mongodb';
-import { bindCollection } from '../src/collection.js';
-import { collection, customType, map, number, object, string, timestamps } from '../src/index.js';
-import { encodeUpsert } from '../src/upsert.js';
+import { bindCollection } from '../packages/db/src/collection.js';
+import {
+  collection,
+  customType,
+  map,
+  number,
+  object,
+  string,
+  timestamps,
+} from '../packages/db/src/index.js';
+import { encodeUpsert } from '../packages/db/src/upsert.js';
 
 test('upsert fills insertion defaults once and shares encoded values with the update', () => {
   let encodes = 0;

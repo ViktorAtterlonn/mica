@@ -4,10 +4,10 @@ import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 import { Binary, MongoClient, ObjectId } from 'mongodb';
 import { Products } from '../examples/entities/products.js';
-import { createDatabase, jsonSchema } from '../src/index.js';
+import { createDatabase, jsonSchema } from '../packages/db/src/index.js';
 
 const uri = process.env.MICA_TEST_URI;
-if (!uri) throw new Error('Use npm run test:integration to start an isolated MongoDB container');
+if (!uri) throw new Error('Use pnpm run test:integration to start an isolated MongoDB container');
 async function eventually(predicate: () => boolean, label: string) {
   const deadline = Date.now() + 45_000;
   while (!predicate()) {

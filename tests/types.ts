@@ -1,7 +1,13 @@
 // Executed by tsc only. Every @ts-expect-error must correspond to a real compiler error.
 import { Binary, ObjectId } from 'mongodb';
 import { Products } from '../examples/entities/products.js';
-import { boolean, createDatabase, string, type Filter, type Projection } from '../src/index.js';
+import {
+  boolean,
+  createDatabase,
+  string,
+  type Filter,
+  type Projection,
+} from '../packages/db/src/index.js';
 type Select = typeof Products.$inferSelect;
 type Insert = typeof Products.$inferInsert;
 type Stored = typeof Products.$inferStored;
@@ -137,7 +143,7 @@ function plainObjectIsMutable(value: Select) {
 }
 void plainObjectIsMutable;
 // A bounded dot path still permits assigning deeper documents as a whole.
-import { array, collection, number, object, objectId } from '../src/index.js';
+import { array, collection, number, object, objectId } from '../packages/db/src/index.js';
 const Deep = collection('deep', {
   _id: objectId().auto(),
   a: object({ b: object({ c: object({ d: object({ e: object({ f: string() }) }) }) }) }),
@@ -158,7 +164,7 @@ const arraySelectMissingDefault: typeof ArrayDefaults.$inferSelect = {
 void [deepValid, arraysWithDefaults];
 
 // Index callback references and partial predicates remain tied to the complete collection schema.
-import { index, date, customType, enum_ } from '../src/index.js';
+import { index, date, customType, enum_ } from '../packages/db/src/index.js';
 const Indexed = collection(
   'indexed',
   {
@@ -322,7 +328,7 @@ async function privateReads() {
 void [storedToken, privateReads];
 
 // All collection operations preserve the same application shapes and field rules.
-import type { BulkOperation, Sort } from '../src/index.js';
+import type { BulkOperation, Sort } from '../packages/db/src/index.js';
 const productSort: Sort<typeof Products.$fields> = [
   ['variants.price', -1],
   ['_id', 1],
@@ -825,7 +831,7 @@ const positionalImmutable: typeof UpdateOperators.$inferUpdate = {
 };
 db.products.updateOne({}, positionalValid, { arrayFilters: [{ 'v.sku': 'one' }] });
 
-import { map } from '../src/index.js';
+import { map } from '../packages/db/src/index.js';
 const Maps = collection('maps', {
   _id: string(),
   counts: map(number()),
@@ -876,7 +882,7 @@ const badObjectPull: typeof ScalarArrays.$inferUpdate = {
   $pull: { rows: { name: 123 } },
 };
 
-import { arrayFilter } from '../src/index.js';
+import { arrayFilter } from '../packages/db/src/index.js';
 arrayFilter('row', ScalarArrays.rows, { name: 'one' });
 arrayFilter('count', ScalarArrays.counts, { $gte: 1 });
 // @ts-expect-error selected element predicate has a string field

@@ -10,8 +10,8 @@ import {
   number,
   object,
   string,
-} from '../src/index.js';
-import { bindCollection } from '../src/collection.js';
+} from '../packages/db/src/index.js';
+import { bindCollection } from '../packages/db/src/collection.js';
 
 const secret = customType({
   base: string,

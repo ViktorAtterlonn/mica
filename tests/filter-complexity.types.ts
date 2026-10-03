@@ -13,7 +13,7 @@ import {
   string,
   timestamps,
   type Filter,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const encoded = customType({
   base: string,

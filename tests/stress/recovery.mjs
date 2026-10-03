@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
-import { collection, createDatabase, number, string } from '../../dist/index.js';
+import { collection, createDatabase, number, string } from '@mica/db';
 import {
   client,
   direct,

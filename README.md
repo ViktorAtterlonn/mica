@@ -6,7 +6,7 @@ Mica runs on the official MongoDB driver and returns plain objects. Database ope
 
 **Status: early development.** The API may change. This repository is usable locally; an npm release has not been published from this project. Start with a controlled application trial before a production rollout.
 
-[API reference](docs/api.md) · [Examples](examples/README.md) · [FAQ](docs/faq.md) · [Design](docs/design.md) · [Compatibility](docs/compatibility.md) · [Contributing](CONTRIBUTING.md)
+[API reference](docs/api.md) · [CLI](docs/cli.md) · [Examples](examples/README.md) · [FAQ](docs/faq.md) · [Design](docs/design.md) · [Compatibility](docs/compatibility.md) · [Contributing](CONTRIBUTING.md)
 
 ## Why Mica?
 
@@ -27,7 +27,7 @@ Entities live in ordinary modules and can be shared across your application.
 
 ```ts
 // entities/tasks.ts
-import { collection, enum_, objectId, string, timestamps } from 'mica-mongodb';
+import { collection, enum_, objectId, string, timestamps } from '@mica/db';
 
 export const Tasks = collection('tasks', {
   _id: objectId().auto(),
@@ -43,7 +43,7 @@ export type NewTask = typeof Tasks.$inferInsert;
 ## Use the database
 
 ```ts
-import { createDatabase } from 'mica-mongodb';
+import { createDatabase } from '@mica/db';
 import { Tasks } from './entities/tasks.js';
 
 const db = createDatabase({
@@ -74,14 +74,16 @@ try {
 }
 ```
 
-The package name above is the local package identity, not a claim that it is available on npm. For use in another project, build a local tarball with `npm pack` and install that tarball.
+The packages are not published yet. `@mica/db` contains the application library; `@mica/cli` provides the optional `mica` executable and TypeScript config loader. Applications can install the CLI as a development dependency without shipping it in production.
+
+For local tarballs, run `pnpm --filter @mica/db pack` and `pnpm --filter @mica/cli pack`. Install the database tarball in another project, and optionally install the CLI tarball as a development dependency. Pack hooks build the packages and include LICENSE and NOTICE.
 
 ## Define your own fields
 
 Custom fields keep their base type and modifiers while adding application-specific meaning:
 
 ```ts
-import { collection, customType, discoverMetadata, objectId, string } from 'mica-mongodb';
+import { collection, customType, discoverMetadata, objectId, string } from '@mica/db';
 
 const translatable = customType({
   base: string,
@@ -110,17 +112,18 @@ Add a codec's `encode`, `decode`, and `storedSchema` to give a custom field a di
 - Atomic update operators, positional updates, typed array-filter helpers, and validated upserts.
 - Sessions, transactions, operation deadlines, and cancellation.
 - Application-owned codecs and semantic field metadata.
-- Generated MongoDB validators and index declarations, deployed explicitly.
+- Generated MongoDB validators and index declarations, deployed explicitly with `mica check`, `mica diff`, and `mica push`.
 
 Mica handles data access. Workflows, authorization, event delivery, soft deletion, and other application policies belong in your application. The [task completion example](examples/workflows/complete-task.ts) shows a transaction that updates a document and records an outbox event.
 
 ## Development
 
-Requires Node.js 22.13+ and Docker for integration tests.
+Requires Node.js 22.13+, the pinned pnpm version (via Corepack), and Docker for integration tests. This repository uses two pnpm workspaces under `packages/db` and `packages/cli`.
 
 ```sh
-npm ci
-npm run check
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run check
 ```
 
 The full check runs lint, formatting, TypeScript fixtures, unit tests, real MongoDB integration tests, and an isolated consumer test of the packed library. Integration tests create a disposable replica set on a loopback port and remove it afterward. No external database or credentials are needed. Opt-in [local load and recovery tests](docs/stress-testing.md) measure workloads and exercise a three-member replica set.

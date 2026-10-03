@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { array, customType, number, object, objectId, string, timestamps } from '../src/index.js';
-import { checkFilter } from '../src/filter.js';
-import { encodeUpdate, prepareArrayFilters } from '../src/update.js';
+import {
+  array,
+  customType,
+  number,
+  object,
+  objectId,
+  string,
+  timestamps,
+} from '../packages/db/src/index.js';
+import { checkFilter } from '../packages/db/src/filter.js';
+import { encodeUpdate, prepareArrayFilters } from '../packages/db/src/update.js';
 
 const secret = customType({
   base: string,

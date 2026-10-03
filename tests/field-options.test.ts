@@ -9,10 +9,10 @@ import {
   objectId,
   string,
   timestamps,
-} from '../src/index.js';
-import { encodeDocument } from '../src/codec.js';
-import { encodeUpdate } from '../src/update.js';
-import { readProjection } from '../src/projection.js';
+} from '../packages/db/src/index.js';
+import { encodeDocument } from '../packages/db/src/codec.js';
+import { encodeUpdate } from '../packages/db/src/update.js';
+import { readProjection } from '../packages/db/src/projection.js';
 
 const Fields = collection('field_options', {
   _id: objectId().auto(),

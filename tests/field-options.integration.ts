@@ -10,10 +10,10 @@ import {
   object,
   objectId,
   string,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const uri = process.env.MICA_TEST_URI;
-if (!uri) throw new Error('Use npm run test:integration for an isolated MongoDB container');
+if (!uri) throw new Error('Use pnpm run test:integration for an isolated MongoDB container');
 
 test('MongoDB returns all fields by default and excludes projected values before decoding and immutable rejections send no writes', async (t) => {
   let decodes = 0;

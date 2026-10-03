@@ -9,10 +9,10 @@ import {
   object,
   objectId,
   string,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const uri = process.env.MICA_TEST_URI;
-if (!uri) throw new Error('Use npm run test:integration for an isolated MongoDB container');
+if (!uri) throw new Error('Use pnpm run test:integration for an isolated MongoDB container');
 const id = (value: number) => new ObjectId(value.toString(16).padStart(24, '0'));
 
 async function collect<T>(chunks: AsyncIterable<T[]>) {

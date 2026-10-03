@@ -16,11 +16,11 @@ import {
   object,
   objectId,
   string,
-} from '../src/index.js';
-import { checkFilter } from '../src/filter.js';
-import { checkProjection } from '../src/projection.js';
-import { decodeDocument, encodeDocument } from '../src/codec.js';
-import { encodeUpdate } from '../src/update.js';
+} from '../packages/db/src/index.js';
+import { checkFilter } from '../packages/db/src/filter.js';
+import { checkProjection } from '../packages/db/src/projection.js';
+import { decodeDocument, encodeDocument } from '../packages/db/src/codec.js';
+import { encodeUpdate } from '../packages/db/src/update.js';
 
 const now = new Date('2026-10-01T00:00:00Z');
 const input = () => ({

@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Document, FindCursor } from 'mongodb';
-import { collection, createDatabase, customType, objectId, string } from '../src/index.js';
-import { DecodingCursor } from '../src/cursor.js';
+import {
+  collection,
+  createDatabase,
+  customType,
+  objectId,
+  string,
+} from '../packages/db/src/index.js';
+import { DecodingCursor } from '../packages/db/src/cursor.js';
 
 function stub(next: () => Promise<Document | null>, close: () => Promise<void>) {
   // Only the native consumption boundary is mocked; the wrapper runs unchanged.

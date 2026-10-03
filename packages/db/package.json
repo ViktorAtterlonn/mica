@@ -1,0 +1,45 @@
+{
+  "name": "@mica/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/ViktorAtterlonn/mica#readme",
+  "bugs": {
+    "url": "https://github.com/ViktorAtterlonn/mica/issues"
+  },
+  "description": "A TypeScript-first MongoDB toolkit with typed schemas, queries, and storage codecs.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViktorAtterlonn/mica.git",
+    "directory": "packages/db"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "pnpm run build && node ../../scripts/prepare-package.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tooling": {
+      "types": "./dist/tooling.d.ts",
+      "import": "./dist/tooling.js"
+    }
+  },
+  "dependencies": {
+    "mongodb": "^7.7.0"
+  }
+}

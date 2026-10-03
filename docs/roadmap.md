@@ -8,6 +8,7 @@ Mica is in early development. Work is guided by concrete application needs, repr
 - Pinned runtime/compiler compatibility jobs and installed-package consumer tests with compiler budgets.
 - Typed schemas, custom values, codecs, metadata, constraints, and generated validators.
 - Explicit index declarations, including partial, unique, sparse, and TTL indexes.
+- Shared schema comparison tooling and explicit `mica check`, `mica diff`, and confirmed `mica push` for validators and indexes.
 - CRUD, existence/count/distinct queries, bulk operations, cursors, and projected chunks.
 - Immutability, nested projections, maps, and positional updates.
 - Restricted upserts including `$inc`, sessions, transactions, deadlines, and cancellation.

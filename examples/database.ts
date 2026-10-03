@@ -1,4 +1,4 @@
-import { createDatabase } from '../src/index.js';
+import { createDatabase } from '@mica/db';
 
 import { Organizations } from './entities/organizations.js';
 import { Products } from './entities/products.js';

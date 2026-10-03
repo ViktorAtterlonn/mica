@@ -9,7 +9,7 @@ import {
   jsonSchema,
   number,
   string,
-} from '../../dist/index.js';
+} from '@mica/db';
 import { client, poolMetrics, report, save, scenario } from './shared.mjs';
 
 function setting(name, fallback, min, max) {

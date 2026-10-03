@@ -9,7 +9,7 @@ export function writeConsumer(directory, count, depth) {
     join(directory, 'fields.ts'),
     `
 import { Binary } from 'mongodb';
-import { customType, string } from 'mica-mongodb';
+import { customType, string } from '@mica/db';
 
 // A representation codec, not encryption.
 export const encoded = customType({
@@ -37,7 +37,7 @@ export const encoded = customType({
     writeFileSync(
       join(directory, 'entities', `entity-${i}.ts`),
       `
-import { array, collection, enum_, index, map, number, object, objectId, string, timestamps } from 'mica-mongodb';
+import { array, collection, enum_, index, map, number, object, objectId, string, timestamps } from '@mica/db';
 import { encoded } from '../fields.js';
 
 export const Entity${i} = collection('entity_${i}', {
@@ -60,7 +60,7 @@ export const Entity${i} = collection('entity_${i}', {
       join(directory, 'queries', `query-${i}.ts`),
       `
 import { Binary, ObjectId } from 'mongodb';
-import { arrayFilter, type Filter } from 'mica-mongodb';
+import { arrayFilter, type Filter } from '@mica/db';
 import { Entity${i} } from '../entities/entity-${i}.js';
 import { db } from '../database.js';
 
@@ -128,7 +128,7 @@ export async function queries() {
   writeFileSync(
     join(directory, 'database.ts'),
     `
-import { createDatabase } from 'mica-mongodb';
+import { createDatabase } from '@mica/db';
 ${imports.join('\n')}
 
 export const db = createDatabase({

@@ -2,9 +2,9 @@
 
 The library has compile-time, unit, real MongoDB, and package-consumer checks. Passing these checks supports a controlled application trial; it does not establish general production readiness.
 
-`npm run check` runs lint, formatting, type fixtures, unit tests, MongoDB integration, build, and a packed-package consumer smoke test.
+`pnpm run check` runs lint, formatting, type fixtures, unit tests, MongoDB integration, build, and a packed-package consumer smoke test.
 
-The [API contract audit](api-contract-audit.md) records the first correctness pass, fixed mismatches, covered public surfaces, and remaining release gates. `npm run test:generated` runs its seeded differential suite independently; the same suite is also part of the normal check.
+The [API contract audit](api-contract-audit.md) records the first correctness pass, fixed mismatches, covered public surfaces, and remaining release gates. `pnpm run test:generated` runs its seeded differential suite independently; the same suite is also part of the normal check.
 
 ## Persistence evidence
 

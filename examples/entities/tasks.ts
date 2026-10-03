@@ -1,4 +1,4 @@
-import { collection, date, enum_, index, objectId, string, timestamps } from '../../src/index.js';
+import { collection, date, enum_, index, objectId, string, timestamps } from '@mica/db';
 
 export const Tasks = collection(
   'tasks',

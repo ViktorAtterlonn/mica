@@ -13,10 +13,10 @@ import {
   createDatabase,
   number,
   string,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const uri = process.env.MICA_TEST_URI;
-if (!uri) throw new Error('Use npm run test:integration for isolated MongoDB');
+if (!uri) throw new Error('Use pnpm run test:integration for isolated MongoDB');
 
 test(
   'execution budgets and cancellation reach MongoDB and lazy reads',

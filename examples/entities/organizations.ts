@@ -1,4 +1,4 @@
-import { collection, objectId, string } from '../../src/index.js';
+import { collection, objectId, string } from '@mica/db';
 
 export const Organizations = collection('organizations', {
   _id: objectId().auto(),

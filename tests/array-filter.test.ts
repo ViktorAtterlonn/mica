@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { BSON } from 'mongodb';
-import { prepareArrayFilters } from '../src/update.js';
-import { array, arrayFilter, customType, number, object, string } from '../src/index.js';
+import { prepareArrayFilters } from '../packages/db/src/update.js';
+import {
+  array,
+  arrayFilter,
+  customType,
+  number,
+  object,
+  string,
+} from '../packages/db/src/index.js';
 
 test('typed array filters prefix logical predicates and snapshot caller values', () => {
   const rows = array(object({ name: string(), score: number() }));

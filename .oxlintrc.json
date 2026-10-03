@@ -9,7 +9,7 @@
     "builtin": true,
     "node": true
   },
-  "ignorePatterns": ["node_modules/**", "dist/**", ".tmp/**"],
+  "ignorePatterns": ["**/node_modules/**", "**/dist/**", ".tmp/**"],
   "overrides": [
     {
       "files": ["tests/types.ts", "tests/*.types.ts"],

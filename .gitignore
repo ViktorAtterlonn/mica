@@ -12,3 +12,7 @@ coverage/
 .DS_Store
 .idea/
 .vscode/
+
+# Copied from root by the package prepack hook.
+/packages/*/LICENSE
+/packages/*/NOTICE

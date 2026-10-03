@@ -6,23 +6,25 @@ Mica describes persisted data and provides typed access to MongoDB. The applicat
 
 A field can have different insertion, application, and stored representations. Defaults and synchronous codecs run on supported writes. Reads decode the fields returned by MongoDB without reapplying defaults or checking required fields, so partial projections remain possible. Custom atomic values use an application predicate and a stored JSON Schema; applications own their consistency.
 
-Fields and collections are reusable declarations. Database instances bind those schemas to a native client. Index and validator deployment is explicit and can be handled by application deployment tooling.
+Fields and collections are reusable declarations. Database instances bind those schemas to a native client. Index and validator deployment is explicit through the [schema CLI](cli.md) or application deployment tooling. The shared normalized schema, metadata introspection, comparison, and push modules are exported through `@mica/db/tooling`; CLI configuration and rendering are separate consumers.
 
 ## Source layout
 
-The source stays flat while modules have distinct owners:
+Runtime and shared schema-tooling modules live in `packages/db/src/`. Command-line concerns live in `packages/cli/src/`. The CLI imports the public `@mica/db/tooling` entry point. Module owners within these packages are:
 
-| Modules                                                           | Responsibility                                                    |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `fields.ts`, `schema.ts`, `indexes.ts`                            | Schema declarations, stored JSON Schema, and index definitions    |
-| `codec.ts`                                                        | Validate, encode, and decode document values                      |
-| `schema-paths.ts`                                                 | Resolve read/write paths and inspect codec/immutable descendants  |
-| `filter.ts`, `projection.ts`, `update.ts`, `upsert.ts`            | Prepare the corresponding MongoDB operation inputs                |
-| `validation.ts`                                                   | Shared validation primitives and BSON type names                  |
-| `query-options.ts`                                                | Normalize and snapshot driver options                             |
-| `collection.ts`, `database.ts`                                    | Bind public operations to the driver and own connection lifecycle |
-| `cursor.ts`, `chunks.ts`, `aggregation.ts`, `aggregate-filter.ts` | Read traversal, pipelines, and schema-aware aggregation matching  |
-| `query-types.ts`, `aggregation-types.ts`                          | Compile-time operation and result inference                       |
+| Modules                                                                                              | Responsibility                                                                          |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `fields.ts`, `schema.ts`, `indexes.ts`                                                               | Schema declarations, stored JSON Schema, and index definitions                          |
+| `codec.ts`                                                                                           | Validate, encode, and decode document values                                            |
+| `schema-paths.ts`                                                                                    | Resolve read/write paths and inspect codec/immutable descendants                        |
+| `filter.ts`, `projection.ts`, `update.ts`, `upsert.ts`                                               | Prepare the corresponding MongoDB operation inputs                                      |
+| `validation.ts`                                                                                      | Shared validation primitives and BSON type names                                        |
+| `query-options.ts`                                                                                   | Normalize and snapshot driver options                                                   |
+| `collection.ts`, `database.ts`                                                                       | Bind public operations to the driver and own connection lifecycle                       |
+| `cursor.ts`, `chunks.ts`, `aggregation.ts`, `aggregate-filter.ts`                                    | Read traversal, pipelines, and schema-aware aggregation matching                        |
+| `packages/cli/src/`                                                                                  | CLI entry point, argument parsing, config loading, confirmation, and rendering          |
+| `schema-model.ts`, `schema-normalize.ts`, `schema-diff.ts`, `schema-introspect.ts`, `schema-push.ts` | Shared schema graph, normalization, comparison, metadata reads, and explicit deployment |
+| `query-types.ts`, `aggregation-types.ts`                                                             | Compile-time operation and result inference                                             |
 
 Internal modules import the owner directly. `index.ts` remains the public package boundary; moving an internal function does not add a new public API. Tests can import internal owners to verify focused runtime contracts.
 

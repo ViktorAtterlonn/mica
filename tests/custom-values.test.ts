@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { collection, customType, jsonSchema, string } from '../src/index.js';
-import { decodeDocument, encodeDocument } from '../src/codec.js';
+import { collection, customType, jsonSchema, string } from '../packages/db/src/index.js';
+import { decodeDocument, encodeDocument } from '../packages/db/src/codec.js';
 
 const settingValue = customType({
   validate: (value: unknown): value is string | number | boolean =>

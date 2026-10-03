@@ -1,0 +1,51 @@
+{
+  "name": "@mica/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/ViktorAtterlonn/mica#readme",
+  "bugs": {
+    "url": "https://github.com/ViktorAtterlonn/mica/issues"
+  },
+  "description": "Explicit MongoDB schema checks, diffs, and deployment for Mica.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViktorAtterlonn/mica.git",
+    "directory": "packages/cli"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "pnpm --filter @mica/db build && pnpm run build && node ../../scripts/prepare-package.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "mica": "./dist/bin.js"
+  },
+  "dependencies": {
+    "mongodb": "^7.7.0",
+    "tsx": "^4.23.15"
+  },
+  "peerDependencies": {
+    "@mica/db": "workspace:^"
+  },
+  "devDependencies": {
+    "@mica/db": "workspace:*"
+  }
+}

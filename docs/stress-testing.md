@@ -1,10 +1,10 @@
 # Local load and recovery testing
 
-These opt-in checks exercise Mica's built JavaScript against disposable MongoDB containers. They are separate from `npm run check` and are not added to CI.
+These opt-in checks exercise Mica's built JavaScript against disposable MongoDB containers. They are separate from `pnpm run check` and are not added to CI.
 
 ```sh
-npm run test:load
-npm run test:recovery
+pnpm run test:load
+pnpm run test:recovery
 ```
 
 Use a running Docker daemon and allow image/npm downloads on the first run. The runner uses MongoDB 8.2.2 and Node.js 22.13.0 by default. `MICA_MONGO_IMAGE` overrides the server image. It creates a uniquely named private Docker network, one database member for load tests or three voting data-bearing members for recovery, and a client container with freshly installed production dependencies. Database ports are not published. The runner accepts no external database URI.
@@ -16,8 +16,8 @@ Each run writes reports to `.tmp/stress/load-TIMESTAMP/` or `.tmp/stress/recover
 The default run seeds 2,000 synthetic documents with 8 KiB codec-backed payloads and runs eight concurrent workers. Thirty measured seconds are divided equally between read, write, and mixed phases, after seeding and connection warmup. Writes use majority acknowledgement. The mixed phase cycles through two projected reads, one increment, one two-update bulk, and one grouped aggregate. Each read explicitly selects and checks its decoded payload. Explicit exclusion and codec decoding have separate correctness coverage.
 
 ```sh
-MICA_LOAD_SECONDS=120 MICA_LOAD_WORKERS=16 npm run test:load
-MICA_LOAD_DOCUMENTS=10000 MICA_LOAD_PAYLOAD_BYTES=8192 npm run test:load
+MICA_LOAD_SECONDS=120 MICA_LOAD_WORKERS=16 pnpm run test:load
+MICA_LOAD_DOCUMENTS=10000 MICA_LOAD_PAYLOAD_BYTES=8192 pnpm run test:load
 ```
 
 Bounds: duration 6–1,200 seconds, workers 1–64, documents 100–100,000, payload 0–262,144 bytes, with at most 256 MiB of seeded payload. The deadline controls when workers stop starting operations; in-flight operations finish before phase metrics are recorded. A bulk counts as one workload operation and two increments. This is a closed-loop workload with bounded concurrency, so it does not measure latency under an unbounded incoming request rate.

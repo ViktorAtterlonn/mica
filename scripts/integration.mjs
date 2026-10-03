@@ -72,6 +72,7 @@ try {
             'tests/workflow.integration.ts',
             'tests/feature-gaps.integration.ts',
             'tests/aggregation.integration.ts',
+            'tests/schema-tooling.integration.ts',
           ]),
       'tests/generated-contracts.integration.ts',
     ],

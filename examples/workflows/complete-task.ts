@@ -1,5 +1,5 @@
 import type { ObjectId } from 'mongodb';
-import { createDatabase } from '../../src/index.js';
+import { createDatabase } from '@mica/db';
 import { Tasks } from '../entities/tasks.js';
 import { TaskEvents } from '../entities/task-events.js';
 

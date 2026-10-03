@@ -1,53 +1,95 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { packPackage } from './pack.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const temporary = mkdtempSync(join(tmpdir(), 'mica-package-'));
-const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
 try {
-  const [packed] = JSON.parse(
-    execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temporary], {
-      cwd: root,
-      encoding: 'utf8',
-    }),
-  );
-  assert(packed.files.some((file) => file.path === 'LICENSE'));
-  assert(packed.files.some((file) => file.path === 'dist/index.js'));
-  assert(packed.files.some((file) => file.path === 'dist/index.d.ts'));
-  assert(
-    packed.files.every(
-      (file) =>
-        file.path.startsWith('dist/') ||
-        ['package.json', 'README.md', 'LICENSE', 'NOTICE'].includes(file.path),
-    ),
-    'The package must not include tests, fixtures, local logs or example configuration',
-  );
+  const db = packPackage('db', temporary);
+  const cliPackage = packPackage('cli', temporary);
+  for (const packed of [db, cliPackage]) {
+    assert(packed.files.includes('LICENSE'));
+    assert(packed.files.includes('NOTICE'));
+    assert(packed.files.includes('dist/index.js'));
+    assert(packed.files.includes('dist/index.d.ts'));
+    assert(
+      packed.files.every(
+        (file) =>
+          file.startsWith('dist/') ||
+          ['package.json', 'README.md', 'LICENSE', 'NOTICE'].includes(file),
+      ),
+      'Packages must contain only built code and publication metadata',
+    );
+    assert(
+      !JSON.stringify(packed.manifest).includes('workspace:'),
+      'Packed workspace ranges must be ordinary semver',
+    );
+  }
+  assert.deepEqual(db.manifest.dependencies, { mongodb: '^7.7.0' });
+  assert.equal(db.manifest.bin, undefined);
+  assert.equal(db.manifest.exports['./cli'], undefined);
+  assert(!db.files.some((file) => file.startsWith('dist/cli')));
+  assert.equal(cliPackage.manifest.bin.mica, './dist/bin.js');
+  assert.equal(cliPackage.manifest.peerDependencies['@mica/db'], `^${db.manifest.version}`);
 
-  const modules = join(temporary, 'node_modules');
-  const installed = join(modules, manifest.name);
-  mkdirSync(installed, { recursive: true });
-  execFileSync('tar', [
-    '-xzf',
-    join(temporary, packed.filename),
-    '--strip-components=1',
-    '-C',
-    installed,
-  ]);
-  // Use the installed dependency without a network install or repository source imports.
-  symlinkSync(join(root, 'node_modules', 'mongodb'), join(modules, 'mongodb'), 'dir');
-  symlinkSync(join(root, 'node_modules', '@types'), join(modules, '@types'), 'dir');
-  writeFileSync(join(temporary, 'package.json'), JSON.stringify({ type: 'module', private: true }));
+  // Real npm consumers prove package isolation without workspace links or source imports.
+  const consumer = {
+    private: true,
+    type: 'module',
+    dependencies: { '@mica/db': `file:./${db.filename}` },
+  };
+  writeFileSync(join(temporary, 'package.json'), JSON.stringify(consumer));
+  const install = (...args) =>
+    execFileSync('npm', ['install', '--no-audit', '--no-fund', ...args], {
+      cwd: temporary,
+      stdio: 'pipe',
+      timeout: 180_000,
+    });
+  install('--omit=dev');
+  for (const name of ['tsx', 'esbuild', '@mica/cli'])
+    assert(
+      !existsSync(join(temporary, 'node_modules', name)),
+      `${name} must not be installed with @mica/db`,
+    );
+  writeFileSync(
+    join(temporary, 'db-only.mjs'),
+    `
+    import assert from 'node:assert/strict';
+    import { collection, createDatabase, string } from '@mica/db';
+    import { normalizeDeclarations } from '@mica/db/tooling';
+    const records = collection('records', { _id: string() });
+    assert.equal(normalizeDeclarations({ records }).collections.length, 1);
+    const db = createDatabase({ uri: 'mongodb://127.0.0.1:1', database: 'unused', collections: { records } });
+    await db.close();
+  `,
+  );
+  execFileSync(process.execPath, [join(temporary, 'db-only.mjs')], { stdio: 'inherit' });
+
+  consumer.devDependencies = {
+    '@mica/cli': `file:./${cliPackage.filename}`,
+    '@types/node': '22.20.4',
+  };
+  writeFileSync(join(temporary, 'package.json'), JSON.stringify(consumer));
+  install();
+  const installed = join(temporary, 'node_modules', '@mica', 'cli');
+  const executable = join(temporary, 'node_modules', '.bin', 'mica');
+  assert.match(execFileSync(executable, ['--help'], { encoding: 'utf8' }), /mica check/);
   writeFileSync(
     join(temporary, 'consumer.mjs'),
     `
     import assert from 'node:assert/strict';
-    import { collection, createDatabase, jsonSchema, string, number } from ${JSON.stringify(manifest.name)};
+    import { collection, createDatabase, jsonSchema, string, number } from '@mica/db';
+    import { defineConfig } from '@mica/cli';
+    import { normalizeDeclarations, compareSchemas } from '@mica/db/tooling';
     const Records = collection('records', { _id: string(), count: number().default(0) });
+    const graph = normalizeDeclarations({ Records });
+    assert.equal(compareSchemas(graph, graph).changes.length, 0);
+    assert.equal(defineConfig({ schema: './schema.ts', database: { uri: 'mongodb://127.0.0.1:1', name: 'unused' } }).schema, './schema.ts');
     assert.equal(jsonSchema(Records).$jsonSchema.properties.count.bsonType, 'number');
     const db = createDatabase({ uri: 'mongodb://127.0.0.1:1', database: 'unused', collections: { records: Records } });
     assert.equal(db.status, 'idle');
@@ -55,13 +97,38 @@ try {
   `,
   );
   writeFileSync(
+    join(temporary, 'mica.config.ts'),
+    `
+    import { defineConfig } from '@mica/cli';
+    export default defineConfig({ schema: './schema.ts', database: { uri: 'mongodb://127.0.0.1:1', name: 'unused' } });
+  `,
+  );
+  writeFileSync(
+    join(temporary, 'schema.ts'),
+    `
+    import { collection, string } from '@mica/db';
+    export default { records: collection('records', { _id: string() }) };
+  `,
+  );
+  const cli = spawnSync(process.execPath, [join(installed, 'dist/bin.js'), 'check'], {
+    cwd: temporary,
+    encoding: 'utf8',
+  });
+  assert.equal(cli.status, 2, cli.stdout);
+  assert.match(cli.stderr, /ECONNREFUSED|Server selection/);
+  writeFileSync(
     join(temporary, 'consumer.ts'),
     `
-    import { collection, createDatabase, string, number, object, objectId, map } from ${JSON.stringify(manifest.name)};
+    import { collection, createDatabase, string, number, object, objectId, map } from '@mica/db';
+    import { defineConfig } from '@mica/cli';
+    import { normalizeDeclarations, compareSchemas, type SchemaDiff } from '@mica/db/tooling';
+    defineConfig({ schema: './schema.ts', database: { uri: 'mongodb://127.0.0.1:1', name: 'unused' } });
     const Records = collection('records', {
       _id: string(), profile: object({ title: string(), count: number().default(0) }), counts: map(number()), ownerId: objectId().optional(),
     });
     const db = createDatabase({ uri: 'mongodb://127.0.0.1:1', database: 'unused', collections: { records: Records } });
+    const graph = normalizeDeclarations({ Records });
+    compareSchemas(graph, graph) satisfies SchemaDiff;
     async function check() {
       const inserted = await db.records.insertOne({ _id: 'id', profile: { title: 'one' }, counts: {} });
       inserted.insertedId satisfies string;
@@ -110,7 +177,7 @@ try {
     { cwd: temporary, stdio: 'inherit' },
   );
   console.log(
-    `Package smoke passed: ${packed.files.length} files, runtime import and exported TypeScript inference.`,
+    `Package smoke passed: isolated @mica/db install, @mica/cli executable, both tarballs and exported TypeScript inference.`,
   );
 } finally {
   rmSync(temporary, { recursive: true, force: true });

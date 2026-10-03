@@ -1,15 +1,8 @@
 {
+  "extends": "./tsconfig.base.json",
+  "include": ["packages/*/src", "tests", "examples"],
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true,
-    "declaration": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "types": ["node"]
-  },
-  "include": ["src", "tests", "examples"]
+    "noEmit": true,
+    "declaration": false
+  }
 }

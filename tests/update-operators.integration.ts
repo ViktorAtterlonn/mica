@@ -11,10 +11,10 @@ import {
   objectId,
   string,
   timestamps,
-} from '../src/index.js';
+} from '../packages/db/src/index.js';
 
 const uri = process.env.MICA_TEST_URI;
-if (!uri) throw new Error('Use npm run test:integration for an isolated MongoDB container');
+if (!uri) throw new Error('Use pnpm run test:integration for an isolated MongoDB container');
 
 test('$unset and $inc preserve native atomic writes with Mica field rules', async (t) => {
   let encodes = 0;

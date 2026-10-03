@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["node_modules/**", "dist/**", ".tmp/**", "package-lock.json"],
+  "ignorePatterns": ["**/node_modules/**", "**/dist/**", ".tmp/**", "pnpm-lock.yaml"],
   "singleQuote": true,
   "printWidth": 100,
   "sortImports": false,

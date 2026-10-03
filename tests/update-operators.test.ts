@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { encodeUpdate } from '../src/update.js';
-import { array, customType, number, object, objectId, string, timestamps } from '../src/index.js';
+import { encodeUpdate } from '../packages/db/src/update.js';
+import {
+  array,
+  customType,
+  number,
+  object,
+  objectId,
+  string,
+  timestamps,
+} from '../packages/db/src/index.js';
 
 const forbiddenCall = () => {
   throw new Error('Update unexpectedly invoked a codec or default');

@@ -1,4 +1,4 @@
-import { collection, map, number, object, string, timestamps } from '../../src/index.js';
+import { collection, map, number, object, string, timestamps } from '@mica/db';
 
 export const BrowserUsage = collection('browser_usage', {
   _id: string(),
