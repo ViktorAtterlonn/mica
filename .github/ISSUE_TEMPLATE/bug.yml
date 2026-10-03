@@ -1,0 +1,30 @@
+name: Bug report
+description: Report an incorrect type or runtime behavior.
+title: '[Bug]: '
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Node.js, TypeScript, MongoDB server, and operating system versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic data. Include the schema, operation, and any compiler or runtime error. Never include credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

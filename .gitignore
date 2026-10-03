@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.tmp/
+coverage/
+*.tsbuildinfo
+*.log
+*.tgz
+*.tar.gz
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/

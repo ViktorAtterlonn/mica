@@ -1,0 +1,65 @@
+{
+  "name": "mica-mongodb",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:integration": "node scripts/integration.mjs",
+    "test:generated": "node scripts/integration.mjs --generated",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run test:integration && npm run test:package",
+    "bench:types": "npm run build && node scripts/bench-types.mjs",
+    "lint": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix --deny-warnings",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test:package": "npm run build && node scripts/package-smoke.mjs",
+    "prepack": "npm run build",
+    "test:compatibility": "npm run build && node scripts/bench-types.mjs --matrix",
+    "test:load": "npm run build && node scripts/stress.mjs load",
+    "test:recovery": "npm run build && node scripts/stress.mjs recovery"
+  },
+  "dependencies": {
+    "mongodb": "^7.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "description": "A TypeScript-first MongoDB toolkit with typed schemas, queries, and storage codecs.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViktorAtterlonn/mica.git"
+  },
+  "homepage": "https://github.com/ViktorAtterlonn/mica#readme",
+  "bugs": {
+    "url": "https://github.com/ViktorAtterlonn/mica/issues"
+  },
+  "keywords": [
+    "mongodb",
+    "typescript",
+    "schema",
+    "database",
+    "orm"
+  ]
+}
