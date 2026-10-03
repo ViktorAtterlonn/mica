@@ -8,7 +8,7 @@ The result follows [MongoDB distinct semantics](https://www.mongodb.com/docs/man
 
 Targets with codecs, or containers with codec descendants, reject at compile time and runtime. The client never tries to recover application equality by decoding ciphertext and deduplicating it. Non-codec sibling paths remain eligible. Since accepted targets have identical application/storage representations, no codec or default runs on their values.
 
-Naming a path explicitly opts into that value, like an explicit inclusion projection: `select(false)` fields can be requested, and selected whole objects contain their hidden descendants. There is no projection option on this method. Missing optional fields do not add `undefined` to the result type. Nullable values retain `null`.
+Naming a path returns its complete value, including descendants of a whole object. There is no projection option on this method. Missing optional fields do not add `undefined` to the result type. Nullable values retain `null`.
 
 ## TTL indexes
 
@@ -22,4 +22,4 @@ TTL declarations become `expireAfterSeconds` in fresh native `$indexes` specs. I
 
 ## Evidence
 
-Compile tests cover distinct results, codec exclusions, filters, array paths, and TTL eligibility through modifier chains. Unit tests cover duration validation, runtime target rejection, and declaration immutability. The disposable `mica_distinct` database verifies native distinct values, nested arrays, hidden selection, no codec execution, and rejection before sending commands. `mica_ttl` installs and reads back TTL specs and verifies deletion, partial predicates, missing/null dates, and earliest-date arrays. Its monitor interval is temporarily shortened only inside the disposable test container and restored afterwards.
+Compile tests cover distinct results, codec exclusions, filters, array paths, and TTL eligibility through modifier chains. Unit tests cover duration validation, runtime target rejection, and declaration immutability. The disposable `mica_distinct` database verifies native distinct values, nested arrays, whole-object selection, no codec execution, and rejection before sending commands. `mica_ttl` installs and reads back TTL specs and verifies deletion, partial predicates, missing/null dates, and earliest-date arrays. Its monitor interval is temporarily shortened only inside the disposable test container and restored afterwards.

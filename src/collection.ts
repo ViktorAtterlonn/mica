@@ -322,7 +322,6 @@ export function bindCollection<F extends Fields>(
           `${path}: distinct on codec-backed fields/containers is unsupported`,
         );
       }
-      // The explicit target opts into the whole value, including hidden descendants.
       // Codec-free values already have the same application and stored representations.
       return native.distinct(
         path,

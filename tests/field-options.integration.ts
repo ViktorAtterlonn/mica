@@ -15,7 +15,7 @@ import {
 const uri = process.env.MICA_TEST_URI;
 if (!uri) throw new Error('Use npm run test:integration for an isolated MongoDB container');
 
-test('MongoDB excludes hidden values before decoding and immutable rejections send no writes', async (t) => {
+test('MongoDB returns all fields by default and excludes projected values before decoding and immutable rejections send no writes', async (t) => {
   let decodes = 0;
   const secret = customType({
     base: string,
@@ -29,12 +29,12 @@ test('MongoDB excludes hidden values before decoding and immutable rejections se
     },
   });
   const Records = collection('records', {
-    _id: objectId().auto().select(false),
+    _id: objectId().auto(),
     name: string(),
-    token: secret().select(false),
-    profile: object({ name: string(), token: secret().select(false), fixed: string().immutable() }),
-    rows: array(object({ token: secret().select(false), fixed: string().immutable() })),
-    matrix: array(array(object({ token: secret().select(false) }))),
+    token: secret(),
+    profile: object({ name: string(), token: secret(), fixed: string().immutable() }),
+    rows: array(object({ token: secret(), fixed: string().immutable() })),
+    matrix: array(array(object({ token: secret() }))),
     consent: array(objectId()).immutable(),
     frozen: object({ value: string() }).immutable(),
   });
@@ -67,31 +67,35 @@ test('MongoDB excludes hidden values before decoding and immutable rejections se
   const filter = { _id: insertedId };
   const result = await db.records.findOne(filter);
   assert(result);
-  assert(!('_id' in result));
-  assert(!('token' in result));
-  assert(!('token' in result.profile));
-  assert(!('token' in result.rows[0]!));
-  assert.deepEqual(result.matrix, [[{}]]);
-  assert.equal(decodes, 0);
-  assert.deepEqual(finds.at(-1)!.projection, {
-    _id: 0,
-    token: 0,
-    'profile.token': 0,
-    'rows.token': 0,
-    'matrix.token': 0,
-  });
+  assert(result._id.equals(insertedId));
+  assert.equal(result.token, 'top secret');
+  assert.equal(result.profile.token, 'nested secret');
+  assert.equal(result.rows[0]!.token, 'array secret');
+  assert.deepEqual(result.matrix, [[{ token: 'matrix secret' }]]);
+  assert.equal(decodes, 4);
+  assert.deepEqual(finds.at(-1)!.projection, {});
   assert.deepEqual(await db.records.findOne(filter, { projection: {} }), result);
-  const excluded = await db.records.findOne(filter, { projection: { profile: 0, _id: 1 } });
+  assert.equal(decodes, 8);
+  const projection = { token: 0, 'profile.token': 0, 'rows.token': 0, 'matrix.token': 0 } as const;
+  const excluded = await db.records.findOne(filter, { projection });
   assert(excluded);
   assert(excluded._id.equals(insertedId));
-  assert(!('profile' in excluded));
   assert(!('token' in excluded));
-  assert.equal(decodes, 0);
-  assert.deepEqual(await db.records.findOne(filter, { projection: { name: 1 } }), { name: 'test' });
+  assert(!('token' in excluded.profile));
+  assert(!('token' in excluded.rows[0]!));
+  assert.deepEqual(excluded.matrix, [[{}]]);
+  assert.equal(decodes, 8);
+  assert.deepEqual(finds.at(-1)!.projection, projection);
+  assert.deepEqual(await db.records.findOne(filter, { projection: { name: 1 } }), {
+    _id: insertedId,
+    name: 'test',
+  });
+  assert.equal(decodes, 8);
   assert.deepEqual(await db.records.findOne(filter, { projection: { token: 1 } }), {
+    _id: insertedId,
     token: 'top secret',
   });
-  assert.equal(decodes, 1);
+  assert.equal(decodes, 9);
   const selected = await db.records.findOne(filter, {
     projection: { profile: 1, rows: 1, matrix: 1, _id: 1 },
   });
@@ -100,7 +104,7 @@ test('MongoDB excludes hidden values before decoding and immutable rejections se
   assert.equal(selected.profile.token, 'nested secret');
   assert.equal(selected.rows[0]!.token, 'array secret');
   assert.equal(selected.matrix[0]![0]!.token, 'matrix secret');
-  assert.equal(decodes, 4);
+  assert.equal(decodes, 12);
   for (const update of [
     { $set: { profile: { name: 'overwrite', token: 'oops', fixed: 'new' } } },
     { $set: { 'profile.fixed': 'new' } },
@@ -118,8 +122,10 @@ test('MongoDB excludes hidden values before decoding and immutable rejections se
   assert.equal(updated?.profile.name, 'changed');
   assert.equal(updated?.profile.fixed, 'original');
   assert.equal(updated?.rows.length, 2);
-  assert.equal(decodes, 4);
+  assert.equal(updated?.token, 'rotated');
+  assert.equal(decodes, 17);
   assert.deepEqual(await db.records.findOne(filter, { projection: { token: 1 } }), {
+    _id: insertedId,
     token: 'rotated',
   });
 });

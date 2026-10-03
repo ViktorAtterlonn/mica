@@ -11,10 +11,9 @@ type AggregateProjection<F extends Fields> = Partial<Record<ProjectionPath<F>, 0
 // while narrowing its children and application value after a projection.
 type ProjectedField<F extends AnyField, V, O extends boolean> = {
   readonly definition: F['definition'];
-  readonly $types: Omit<F['$types'], 'app' | 'children' | 'element' | 'optional' | 'selected'> & {
+  readonly $types: Omit<F['$types'], 'app' | 'children' | 'element' | 'optional'> & {
     app: V;
     optional: O;
-    selected: true;
     children: F['$types']['children'] extends Fields
       ? ProjectedFields<F['$types']['children'], NonNullable<V>>
       : F['$types']['children'];

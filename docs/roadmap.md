@@ -9,7 +9,7 @@ Mica is in early development. Work is guided by concrete application needs, repr
 - Typed schemas, custom values, codecs, metadata, constraints, and generated validators.
 - Explicit index declarations, including partial, unique, sparse, and TTL indexes.
 - CRUD, existence/count/distinct queries, bulk operations, cursors, and projected chunks.
-- Field selection, immutability, nested projections, maps, and positional updates.
+- Immutability, nested projections, maps, and positional updates.
 - Restricted upserts including `$inc`, sessions, transactions, deadlines, and cancellation.
 - Structured validation errors and optional typed array-filter builders.
 - Typed read aggregation with match, project, group, sort, skip, limit, and count stages; numeric accumulators and inferred results.

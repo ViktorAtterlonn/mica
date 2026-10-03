@@ -24,11 +24,9 @@ const Records = collection('aggregate_types', {
   _id: objectId().auto(),
   category: string(),
   amount: number().optional().nullable(),
-  secret: encrypted().select(false),
-  profile: object({ label: string(), count: number(), hidden: string().select(false) })
-    .optional()
-    .nullable(),
-  rows: array(object({ label: string(), price: number(), secret: encrypted().select(false) })),
+  secret: encrypted(),
+  profile: object({ label: string(), count: number(), hidden: string() }).optional().nullable(),
+  rows: array(object({ label: string(), price: number(), secret: encrypted() })),
   counts: map(number()),
 });
 const db = createDatabase({
@@ -44,10 +42,8 @@ async function inference() {
   const base = db.records.aggregate();
   const full = (await base.toArray())[0]!;
   full._id satisfies ObjectId;
-  // @ts-expect-error hidden by default
-  full.secret;
-  // @ts-expect-error nested hidden by default
-  full.rows[0]!.secret;
+  full.secret satisfies string;
+  full.rows[0]!.secret satisfies string;
   const projected = base.project({ category: 1, secret: 1, _id: 0 });
   const selected = (await projected.toArray())[0]!;
   expect<Equal<typeof selected.secret, string>>();
@@ -72,10 +68,8 @@ async function inference() {
   const hidden = (await base.project({ rows: 1 }).toArray())[0]!;
   hidden.rows[0]!.secret satisfies string;
   const excluded = (await base.project({ category: 0 }).toArray())[0]!;
-  // @ts-expect-error defaults apply to exclusion projections
-  excluded.secret;
-  // @ts-expect-error hidden descendants stay absent
-  excluded.rows[0]!.secret;
+  excluded.secret satisfies string;
+  excluded.rows[0]!.secret satisfies string;
   const grouped = base.group({
     _id: '$category',
     total: { $sum: '$amount' },

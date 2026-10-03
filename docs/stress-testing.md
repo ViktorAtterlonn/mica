@@ -13,7 +13,7 @@ Each run writes reports to `.tmp/stress/load-TIMESTAMP/` or `.tmp/stress/recover
 
 ## Load workload
 
-The default run seeds 2,000 synthetic documents with 8 KiB codec-backed payloads and runs eight concurrent workers. Thirty measured seconds are divided equally between read, write, and mixed phases, after seeding and connection warmup. Writes use majority acknowledgement. The mixed phase cycles through two projected reads, one increment, one two-update bulk, and one grouped aggregate. Each read explicitly selects and checks its decoded payload; default hidden-field behavior has separate correctness coverage.
+The default run seeds 2,000 synthetic documents with 8 KiB codec-backed payloads and runs eight concurrent workers. Thirty measured seconds are divided equally between read, write, and mixed phases, after seeding and connection warmup. Writes use majority acknowledgement. The mixed phase cycles through two projected reads, one increment, one two-update bulk, and one grouped aggregate. Each read explicitly selects and checks its decoded payload. Explicit exclusion and codec decoding have separate correctness coverage.
 
 ```sh
 MICA_LOAD_SECONDS=120 MICA_LOAD_WORKERS=16 npm run test:load

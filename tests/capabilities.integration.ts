@@ -402,7 +402,7 @@ test('upserts validate complete insertion and preserve immutable fields on subse
   assert.equal(await db.records.exists({ _id: 'missing' }), false);
 });
 
-test('nested projections infer and decode only selected leaves, including arrays and hidden values', async (t) => {
+test('nested projections infer and decode only selected leaves, including arrays and codecs', async (t) => {
   let decodes = 0;
   const secret = customType({
     base: string,
@@ -417,9 +417,9 @@ test('nested projections infer and decode only selected leaves, including arrays
   });
   const Records = collection('nested_projections', {
     _id: string(),
-    profile: object({ name: string(), secret: secret().select(false) }).optional(),
-    rows: array(object({ name: string(), secret: secret().select(false) })),
-    hidden: object({ name: string(), secret: secret() }).select(false),
+    profile: object({ name: string(), secret: secret() }).optional(),
+    rows: array(object({ name: string(), secret: secret() })),
+    hidden: object({ name: string(), secret: secret() }),
   });
   const db = createDatabase({
     uri,
@@ -446,9 +446,9 @@ test('nested projections infer and decode only selected leaves, including arrays
   assert.equal(decodes, 2);
   assert.deepEqual(
     await db.records.findOne({}, { projection: { 'hidden.name': 0, 'profile.name': 0, _id: 0 } }),
-    { profile: {}, rows: [{ name: 'R' }] },
+    { profile: { secret: 'p' }, rows: [{ name: 'R', secret: 'r' }], hidden: { secret: 'h' } },
   );
-  assert.equal(decodes, 2);
+  assert.equal(decodes, 5);
   for await (const batch of db.records.chunks(
     {},
     { size: 1, projection: { 'hidden.name': 1, _id: 0 } },
@@ -544,7 +544,7 @@ test('dynamic map entries support typed writes, projections, codecs, and server 
     _id: string(),
     counts: map(number().integer()),
     sessions: map(object({ name: string(), visits: number().default(0) })),
-    tokens: map(token()).select(false),
+    tokens: map(token()),
   });
   const db = createDatabase({
     uri,
@@ -574,7 +574,7 @@ test('dynamic map entries support typed writes, projections, codecs, and server 
     await db.records.findOne({}, { projection: { 'tokens.browser-1': 1, _id: 0 } }),
     { tokens: { 'browser-1': 'secret' } },
   );
-  assert(!Object.hasOwn((await db.records.findOne())!, 'tokens'));
+  assert.deepEqual((await db.records.findOne())?.tokens, { 'browser-1': 'secret' });
   assert.equal((await raw.findOne())?.tokens['browser-1'], 'stored:secret');
   await db.records.updateOne({}, { $unset: { 'counts.browser-1': 1, 'tokens.browser-1': 1 } });
   assert.deepEqual(await db.records.distinct('counts.browser-1'), []);

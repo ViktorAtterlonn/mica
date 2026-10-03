@@ -43,7 +43,7 @@ function projectedFields(fields: Fields, projection: Document): Fields {
     const below = paths.some((selected) => selected.startsWith(`${path}.`));
     if ((!inclusion && whole) || (inclusion && !whole && !below)) return undefined;
     const definition = value.definition;
-    if (inclusion && whole) return visible(value);
+    if (inclusion && whole) return value;
     if (definition.fields) {
       const children = Object.fromEntries(
         Object.entries(definition.fields).flatMap(([key, child]) => {
@@ -51,16 +51,15 @@ function projectedFields(fields: Fields, projection: Document): Fields {
           return projected ? [[key, projected]] : [];
         }),
       );
-      return new Field({ ...definition, selected: true, fields: children });
+      return new Field({ ...definition, fields: children });
     }
     if (definition.element && definition.kind === 'array') {
       return new Field({
         ...definition,
-        selected: true,
         element: field(definition.element, path)!,
       });
     }
-    return new Field({ ...definition, selected: true });
+    return value;
   }
 
   return Object.fromEntries(
@@ -69,23 +68,6 @@ function projectedFields(fields: Fields, projection: Document): Fields {
       return projected ? [[key, projected]] : [];
     }),
   );
-}
-
-// Explicit inclusion of a whole container also opts into hidden descendants.
-function visible(field: AnyField): AnyField {
-  const definition = field.definition;
-  return new Field({
-    ...definition,
-    selected: true,
-    ...(definition.fields
-      ? {
-          fields: Object.fromEntries(
-            Object.entries(definition.fields).map(([key, child]) => [key, visible(child)]),
-          ),
-        }
-      : {}),
-    ...(definition.element ? { element: visible(definition.element) } : {}),
-  });
 }
 
 function reference(fields: Fields, input: unknown, numeric: boolean): AnyField {
@@ -133,7 +115,7 @@ function reference(fields: Fields, input: unknown, numeric: boolean): AnyField {
       'Group requires a codec-free scalar field of the supported kind',
     );
   }
-  return new Field({ ...result.definition, selected: true, optional: false, nullable });
+  return new Field({ ...result.definition, optional: false, nullable });
 }
 
 function groupFields(fields: Fields, input: unknown): Fields {
@@ -216,7 +198,7 @@ class Pipeline {
       }
     }
     const fields = projectedFields(this.fields, prepared);
-    // MongoDB rejects an empty $project. An empty user projection still applies defaults.
+    // MongoDB rejects an empty $project; an empty projection leaves the shape unchanged.
     return Object.keys(prepared).length
       ? this.append({ $project: prepared }, fields)
       : new Pipeline(this.native, fields, this.ready, this.options, this.stages);
@@ -266,10 +248,7 @@ class Pipeline {
   async toArray(): Promise<Document[]> {
     this.ready();
     this.options.signal?.throwIfAborted();
-    const projection = readProjection(this.fields, undefined);
-    const stages = [...this.stages];
-    if (Object.keys(projection).length) stages.push({ $project: projection });
-    const cursor = this.native.aggregate(stages, this.options);
+    const cursor = this.native.aggregate([...this.stages], this.options);
     try {
       const values = await cursor.toArray();
       return values.map((value) => decodeDocument(this.fields, value));

@@ -32,15 +32,15 @@ test('query API: cursor reads, existence, batch writes and returned documents', 
     },
   });
   const Records = collection('records', {
-    _id: objectId().auto().select(false),
+    _id: objectId().auto(),
     name: string(),
     group: string().default('default'),
     rank: number(),
-    token: secret().select(false),
+    token: secret(),
     fixed: string().immutable().default('original'),
     profile: object({
       label: string(),
-      token: secret().select(false),
+      token: secret(),
       fixed: string().immutable().default('original'),
     }),
     entries: array(
@@ -106,7 +106,13 @@ test('query API: cursor reads, existence, batch writes and returned documents', 
       const before = commands.length;
       const filter = { group: 'read' };
       const sort: { rank: 1 | -1 } = { rank: -1 };
-      const cursor = db.records.cursor(filter, { sort, skip: 1, limit: 2, batchSize: 1 });
+      const cursor = db.records.cursor(filter, {
+        sort,
+        skip: 1,
+        limit: 2,
+        batchSize: 1,
+        projection: { _id: 0, token: 0, 'profile.token': 0 },
+      });
       assert.equal(commands.length, before);
       filter.group = 'changed-after-creation';
       sort.rank = 1;
@@ -185,32 +191,25 @@ test('query API: cursor reads, existence, batch writes and returned documents', 
     assert(iteratorCursor.closed);
   });
 
-  await t.test(
-    'exists and count do not decode hidden tokens, including corrupt stored data',
-    async () => {
-      decodes = 0;
-      assert.equal(await db.records.exists({ group: 'broken' }), true);
-      assert.equal(await db.records.exists({ name: 'missing' }), false);
-      assert.equal(await db.records.exists({ token: { $exists: true } }), true);
-      const last = commands.filter((e) => e.name === 'find').at(-1)!.command;
-      assert.deepEqual(last.projection, { _id: 1 });
-      assert.equal(last.limit, 1);
-      assert.equal(last.singleBatch, true);
-      assert.equal(await db.records.countDocuments({ group: 'read' }), 4);
-      assert.equal(await db.records.countDocuments({ group: 'read' }, { skip: 1, limit: 2 }), 2);
-      assert.equal(await db.records.countDocuments({ group: 'read' }, { limit: 0 }), 4);
-      assert.equal(decodes, 0);
-      assert.equal(
-        (
-          await db.records.findOne(
-            { group: 'read' },
-            { sort: { rank: -1 }, projection: { name: 1 } },
-          )
-        )?.name,
-        'd',
-      );
-    },
-  );
+  await t.test('exists and count do not decode tokens, including corrupt stored data', async () => {
+    decodes = 0;
+    assert.equal(await db.records.exists({ group: 'broken' }), true);
+    assert.equal(await db.records.exists({ name: 'missing' }), false);
+    assert.equal(await db.records.exists({ token: { $exists: true } }), true);
+    const last = commands.filter((e) => e.name === 'find').at(-1)!.command;
+    assert.deepEqual(last.projection, { _id: 1 });
+    assert.equal(last.limit, 1);
+    assert.equal(last.singleBatch, true);
+    assert.equal(await db.records.countDocuments({ group: 'read' }), 4);
+    assert.equal(await db.records.countDocuments({ group: 'read' }, { skip: 1, limit: 2 }), 2);
+    assert.equal(await db.records.countDocuments({ group: 'read' }, { limit: 0 }), 4);
+    assert.equal(decodes, 0);
+    assert.equal(
+      (await db.records.findOne({ group: 'read' }, { sort: { rank: -1 }, projection: { name: 1 } }))
+        ?.name,
+      'd',
+    );
+  });
 
   await t.test(
     'updateMany encodes nested updates and appends with timestamps for every match',
@@ -256,8 +255,8 @@ test('query API: cursor reads, existence, batch writes and returned documents', 
       );
       assert.equal(before?.name, 'a');
       assert(before);
-      assert(!('token' in before));
-      assert(!('_id' in before));
+      assert.equal(before.token, 'rotated');
+      assert(before._id instanceof ObjectId);
       assert.equal(Object.getPrototypeOf(before), Object.prototype);
       const after = await db.records.findOneAndUpdate(
         { name: 'renamed' },
@@ -287,7 +286,7 @@ test('query API: cursor reads, existence, batch writes and returned documents', 
       ]);
       const deleted = await db.records.findOneAndDelete(
         { group: 'delete' },
-        { sort: { rank: -1 }, projection: { name: 1, token: 1 } },
+        { sort: { rank: -1 }, projection: { name: 1, token: 1, _id: 0 } },
       );
       assert.deepEqual(deleted, { name: 'delete-c', token: 'token-delete-c' });
       assert.equal(await db.records.exists({ name: 'delete-c' }), false);
@@ -295,9 +294,14 @@ test('query API: cursor reads, existence, batch writes and returned documents', 
       assert.equal((await db.records.deleteMany({ group: 'delete' })).deletedCount, 1);
       assert.equal((await db.records.deleteMany({ group: 'delete' })).deletedCount, 0);
       assert.equal(await db.records.findOneAndDelete({ group: 'delete' }), null);
-      const defaultDeleted = await db.records.findOneAndDelete({ name: 'broken-a' });
-      assert(defaultDeleted);
-      assert(!('token' in defaultDeleted));
+      const defaultDeleted = await db.records.findOneAndDelete({ name: 'broken-b' });
+      assert.equal(defaultDeleted?.token, 'token-broken-b');
+      const projectedDeleted = await db.records.findOneAndDelete(
+        { name: 'broken-a' },
+        { projection: { token: 0 } },
+      );
+      assert(projectedDeleted);
+      assert(!('token' in projectedDeleted));
     },
   );
 

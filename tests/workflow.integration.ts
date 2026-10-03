@@ -35,7 +35,7 @@ test('task completion commits once and rolls back when its outbox write fails', 
   const task = await db.tasks.findOne({ _id: insertedId });
   assert.equal(task?.state, 'done');
   assert(task?.completedAt instanceof Date);
-  assert(!('internalNote' in task!));
+  assert.equal(task?.internalNote, 'private');
 
   const pending = await db.tasks.insertOne({ organizationId, title: 'Roll back a failed event' });
   await db.events.insertOne({

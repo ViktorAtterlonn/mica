@@ -376,31 +376,7 @@ export type Project<T, P> = P extends undefined
         : OmitPaths<T, Extract<KeysWith<P, 0>, string>>
       : PickPaths<T, Extract<KeysWith<P, 1>, string> | (P extends { _id: 0 } ? never : '_id')>;
 
-// Inclusion is an explicit opt-in to requested values. Exclusion and
-// unprojected reads retain recursively applied schema defaults.
-export type SelectResult<F extends Fields, P> = P extends undefined
-  ? InferFields<F, 'select'>
-  : keyof P extends never
-    ? InferFields<F, 'select'>
-    : Exclude<KeysWith<P, 1>, '_id'> extends never
-      ? KeysWith<P, 0> extends never
-        ? Project<InferFields<F, 'app'>, P>
-        : Project<
-            InferFields<F, 'select'> &
-              (P extends { _id: 1 }
-                ? Pick<InferFields<F, 'app'>, Extract<'_id', keyof InferFields<F, 'app'>>>
-                : {}),
-            P
-          >
-      : Project<InferFields<F, 'app'>, P> extends infer R
-        ? F extends { _id: AnyField }
-          ? F['_id']['$types']['selected'] extends false
-            ? P extends { _id: 1 }
-              ? R
-              : Omit<R, '_id'>
-            : R
-          : R
-        : never;
+export type SelectResult<F extends Fields, P> = Project<InferFields<F, 'app'>, P>;
 
 /** Object insertion order or explicit ordered pairs; directions are BSON sort directions. */
 export type Sort<F extends Fields> =

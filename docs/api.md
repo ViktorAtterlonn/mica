@@ -117,21 +117,21 @@ String and array length bounds must be nonnegative safe integers; numeric bounds
 
 `...timestamps()` fills missing `createdAt` and `updatedAt` on insert with the same application-clock instant. Explicit insertion values are honored. Updates set the top-level `updatedAt`; direct writes to generated fields and `_id` are rejected. Use timestamps at collection level in this spike. Embedded timestamp propagation is not implemented.
 
-### Default selection and immutability
+### Read shapes and immutability
 
 ```ts
 const Accounts = collection('accounts', {
   _id: objectId().auto(),
   externalId: string().immutable(),
-  accessToken: encrypted().optional().select(false),
+  accessToken: encrypted().optional(),
 });
 ```
 
-`.select(false)` excludes a field from ordinary reads and `$inferSelect`, including hidden properties inside objects and arrays. MongoDB excludes the value before Mica decodes it. Insert and storage types still include it. Empty and exclusion projections preserve these defaults; an inclusion projection such as `{ accessToken: 1 }` explicitly opts in. Projections support nested object/array paths. Selecting a whole object or array explicitly also includes its hidden descendants; selecting a leaf returns only that leaf. Encryption itself does not change selection defaults.
+Reads include all schema fields by default. `$inferSelect` describes the complete application shape, including decoded codec values. Use an explicit 0/1 projection to include or exclude fields for a query; MongoDB excludes omitted values before Mica decodes them. Empty projections return the complete shape. Nested object/array projections remain fully inferred, and `_id` follows MongoDB’s projection rules. Encryption does not change the read shape.
 
 `.immutable()` allows insertion but rejects subsequent updates, including writes through immutable parents and whole-object/array replacements containing protected descendants. Mutable siblings remain writable. `$push` can insert new elements with immutable children unless the array itself is immutable. Both TypeScript and runtime checks enforce these rules; returned objects remain mutable. Raw driver operations bypass them.
 
-See [ADR 008](decisions/008-selection-and-immutable-fields.md) for projection edge cases, enforcement limits, and the next query APIs.
+See [ADR 008](decisions/008-immutable-fields.md) for projection edge cases, enforcement limits, and the next query APIs.
 
 ### Custom types
 
@@ -203,7 +203,7 @@ Explicit undefined values and sparse arrays in filters are rejected before BSON 
 | Filters                                                       | Equality, RegExp, `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`, `$all`, `$size`, `$not`, `$type`, `$regex`/`$options`, `$elemMatch`, logical branches; bounded dotted paths |
 | Codec filters and sorts                                       | Structural predicates and safe nested element predicates; codec value comparisons/sorts reject                                                                                                      |
 | Updates                                                       | `$set`, `$push`/`$each`, `$unset`, `$inc`, `$min`, `$max`, scalar `$addToSet`, scalar/object `$pull`; immutable fields and containers with protected descendants reject                             |
-| Projections                                                   | Literal nested `0`/`1`, inclusion/exclusion, `_id` exception, schema default exclusions                                                                                                             |
+| Projections                                                   | Literal nested `0`/`1`, inclusion/exclusion, `_id` exception                                                                                                                                        |
 
 ```ts
 const page = await db.products.find(
@@ -255,7 +255,7 @@ const updated = await db.products.findOneAndUpdate(
 );
 ```
 
-`distinct` returns unique values using MongoDB equality and supports the same typed filters. Missing fields contribute no value; arrays contribute elements and nulls remain null. Naming a hidden field explicitly opts into its value, including hidden descendants of a whole object. Targets containing codecs reject. Results have no ordering guarantee and must fit the native command result limit.
+`distinct` returns unique values using MongoDB equality and supports the same typed filters. Missing fields contribute no value; arrays contribute elements and nulls remain null. Targets containing codecs reject. Results have no ordering guarantee and must fit the native command result limit.
 
 Use `find` for an array and `cursor` for streaming. Cursor options can be supplied to `cursor` or configured fluently before reading. Use `next()`, `toArray()`, or `for await...of`; one consumer at a time. `toArray()` collects remaining results. Early loop exit and failures close the cursor; explicitly `close()` unused cursors. Zero `limit` means unlimited. Sort with a unique final key for stable pagination.
 
@@ -271,7 +271,7 @@ Literal projection values are required (`as const` for reused variables). Widene
 
 ### Dynamic maps
 
-`map(number())` provides typed counters addressed as `counts.sessionId`. `map(object(...))` provides structured values addressed as complete entries. Dynamic keys are validated, and generated MongoDB validators describe every entry's stored shape. Hide a whole map with `.select(false)` when needed. See the separate [browser-usage entity](../examples/entities/browser-usage.ts) and [map contract](decisions/021-dynamic-maps.md).
+`map(number())` provides typed counters addressed as `counts.sessionId`. `map(object(...))` provides structured values addressed as complete entries. Dynamic keys are validated, and generated MongoDB validators describe every entry's stored shape. Use an explicit query projection to include or exclude a map when needed. See the separate [browser-usage entity](../examples/entities/browser-usage.ts) and [map contract](decisions/021-dynamic-maps.md).
 
 ### Sessions, transactions, IDs, and update options
 
@@ -326,7 +326,7 @@ Exactly one native escape route is documented:
 const raw = db.client.db('example').collection<typeof Products.$inferStored>('products');
 ```
 
-**Raw writes bypass toolkit codecs, defaults, timestamps, immutability, and application validation. Raw reads return stored values without default field exclusions.** Replacement writes, update pipelines, unsupported operators, and aggregation stages beyond the typed builder remain available through this route. Validated upserts and explicit sessions/transactions are described in the decisions below. For raw operations, persistence semantics are the caller's responsibility; Mica does not apply codecs or validation to raw driver calls.
+**Raw writes bypass toolkit codecs, defaults, timestamps, immutability, and application validation. Raw reads return stored values without codec decoding.** Replacement writes, update pipelines, unsupported operators, and aggregation stages beyond the typed builder remain available through this route. Validated upserts and explicit sessions/transactions are described in the decisions below. For raw operations, persistence semantics are the caller's responsibility; Mica does not apply codecs or validation to raw driver calls.
 
 ### Aggregation
 
@@ -385,6 +385,6 @@ Builder methods return new pipelines. Reuse a base pipeline for independent quer
 
 MongoDB evaluates stages against stored values. Mica does not run codecs inside the server pipeline. Codec value comparisons, sorts, group keys, and numeric accumulators reject; projecting an unchanged codec field remains supported and decodes it after execution. A grouped output with the same name as an original field uses the new output schema, not the original codec.
 
-Default-hidden fields are excluded on return and by exclusion/default projections. Explicit inclusion opts into hidden fields, including descendants of a selected container. Explicit references may use hidden codec-free fields before they have been projected away. Selection remains a convenience, not authorization.
+Aggregation returns all surviving fields unless a `project()` stage explicitly removes them. Whole-container inclusion returns its complete application value, and codecs run only for fields returned by the pipeline. Group references can use supported codec-free fields in the current stage.
 
 The initial builder supports the stages above, scalar group keys, numeric accumulators, and whole-map projections. Individual map-entry projections, group references through arrays/maps, compound group keys, computed projections, arbitrary expressions, `$unwind`, `$lookup`, `$facet`, `$out`, and `$merge` are outside this API. There is no raw-stage escape inside a typed pipeline that could invalidate its inferred shape. Use a separate [raw driver query](#connection-and-raw-access) for unsupported pipelines, taking responsibility for stored types, decoding, and field selection. See [ADR 027](decisions/027-typed-aggregation.md) for the design.

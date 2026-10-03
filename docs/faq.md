@@ -10,7 +10,7 @@ The goal is for your editor to understand the operation you are actually writing
 
 ## What does type safety cover?
 
-One schema drives insert, selected, stored, filter, update, and projection types. Defaults affect which insert fields are required; codecs distinguish application values from stored values; immutable fields constrain updates; default-hidden fields affect read types.
+One schema drives insert, selected, stored, filter, update, and projection types. Defaults affect which insert fields are required; codecs distinguish application values from stored values; immutable fields constrain updates; explicit projections shape read types.
 
 This applies to Mica's supported typed API. Type assertions, `any`, raw driver calls, and data written by other clients can bypass those guarantees. Query paths have a five-level traversal budget, and some MongoDB operations are outside the current API. The [API reference](api.md) documents these limits.
 
@@ -28,7 +28,7 @@ for (const task of tasks) {
 }
 ```
 
-You do not need to declare a separate result interface or cast a partial document to the full entity type. Nested projections and `.select(false)` defaults also participate in inference. Reused projection objects need literal values, for example with `as const`; widened or dynamic projections are outside the current API.
+You do not need to declare a separate result interface or cast a partial document to the full entity type. Nested object and array projections also participate in inference. Reused projection objects need literal values, for example with `as const`; widened or dynamic projections are outside the current API.
 
 ## What can custom fields do?
 
@@ -96,7 +96,7 @@ The reasons to consider Mica are its inferred projection results, reusable custo
 
 Use the driver directly when you want its full API and prefer to manage your own validation, defaults, and storage conversions.
 
-Mica adds a shared schema for those concerns, typed paths and projections, and helpers such as projected chunks. Native sessions and MongoDB operations remain visible. Raw driver access is also available, but it bypasses Mica's defaults, codecs, field selection, and write checks.
+Mica adds a shared schema for those concerns, typed paths and projections, and helpers such as projected chunks. Native sessions and MongoDB operations remain visible. Raw driver access is also available, but it bypasses Mica's defaults, codecs, projection checks, and write checks.
 
 ## Where do business logic and hooks go?
 

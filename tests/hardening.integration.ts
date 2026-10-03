@@ -68,7 +68,7 @@ test('numeric equality and map entry upserts work across every write entry point
   assert.deepEqual((await db.records.findOne({ _id: 'one' }))?.counts, { old: 2, next: 8 });
 });
 
-test('hidden codecs, positional writes and immutable descendants compose without leaking', async (t) => {
+test('projected codecs, positional writes and immutable descendants compose', async (t) => {
   let decodes = 0;
   const secret = customType({
     base: string,
@@ -83,9 +83,7 @@ test('hidden codecs, positional writes and immutable descendants compose without
   });
   const Records = collection('interactions', {
     _id: string(),
-    rows: array(
-      object({ key: string().immutable(), secret: secret().select(false), score: number() }),
-    ),
+    rows: array(object({ key: string().immutable(), secret: secret(), score: number() })),
   });
   const db = createDatabase({ uri, database: 'mica_hardening', collections: { records: Records } });
   t.after(() => db.close());
@@ -97,11 +95,15 @@ test('hidden codecs, positional writes and immutable descendants compose without
       $set: { 'rows.$[row].secret': 'new' },
       $inc: { 'rows.$[row].score': 1 },
     },
-    { arrayFilters: [{ 'row.key': 'first' }], returnDocument: 'after' },
+    {
+      arrayFilters: [{ 'row.key': 'first' }],
+      returnDocument: 'after',
+      projection: { 'rows.secret': 0 },
+    },
   );
   assert.deepEqual(result?.rows, [{ key: 'first', score: 1 }]);
   assert.equal(decodes, 0);
-  for await (const batch of db.records.chunks({}, { size: 1 }))
+  for await (const batch of db.records.chunks({}, { size: 1, projection: { 'rows.secret': 0 } }))
     assert.deepEqual(batch[0]?.rows, [{ key: 'first', score: 1 }]);
   assert.equal(decodes, 0);
   assert.deepEqual(await db.records.findOne({}, { projection: { 'rows.secret': 1, _id: 0 } }), {

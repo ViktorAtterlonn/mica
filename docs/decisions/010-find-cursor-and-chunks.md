@@ -14,7 +14,7 @@ String-ID checkpoints and simple-collation ordering are added in [ADR 016](016-s
 
 ## Projections and checkpoints
 
-All three methods share selection defaults, literal top-level projection typing, and application-value decoding. Chunk projections can include or exclude fields and can specify `_id: 0`. A schema-hidden `_id` stays hidden in returned objects. Internally, chunks fetch `_id` for ordering and progress, copy the last ID before yielding, then remove `_id` before decoding if the effective projection excludes it. Inferred result types reflect the outward projection exactly. Explicitly selecting an object still includes its complete contents, as described in ADR 008.
+All three methods share literal projection typing and application-value decoding. Chunk projections can include or exclude fields and can specify `_id: 0`. Internally, chunks fetch `_id` for ordering and progress, copy the last ID before yielding, then remove `_id` before decoding if the caller’s projection excludes it. Inferred result types reflect the outward projection exactly. Explicitly selecting an object still includes its complete contents.
 
 The filter, projection, size, and initial checkpoint are captured at iterator construction. Mutating the arguments or yielded documents/arrays cannot redirect pagination. Stored IDs encountered during traversal must be strictly increasing ObjectIds, matching Mica's collection contract; malformed IDs cause an explicit error.
 
@@ -30,4 +30,4 @@ The scan is not a database snapshot. Changes to matching rows ahead of the check
 
 ## Validation
 
-Compile-only tests cover promised arrays, explicit cursors, typed chunk projections, hidden IDs/tokens, resume IDs, and unsupported chunk options. MongoDB tests run only in disposable `mica_chunks`, covering order/size, projection equivalence with `find`, internal ID fetching, decoder behavior, resume/filter intersections, caller mutation, early termination, exact/partial/empty pages, processing-time updates, malformed legacy IDs, and decode failures. Existing cursor tests now target `cursor`, and write regression tests remain active.
+Compile-only tests cover promised arrays, explicit cursors, typed chunk projections, excluded IDs/tokens, resume IDs, and unsupported chunk options. MongoDB tests run only in disposable `mica_chunks`, covering order/size, projection equivalence with `find`, internal ID fetching, decoder behavior, resume/filter intersections, caller mutation, early termination, exact/partial/empty pages, processing-time updates, malformed legacy IDs, and decode failures. Existing cursor tests now target `cursor`, and write regression tests remain active.

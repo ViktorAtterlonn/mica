@@ -8,7 +8,7 @@ export const Tasks = collection(
     title: string().min(1),
     state: enum_('open', 'done').default('open'),
     completedAt: date().optional(),
-    internalNote: string().optional().select(false),
+    internalNote: string().optional(),
     ...timestamps(),
   },
   (t) => [index('organization_state').on(t.organizationId, t.state)],

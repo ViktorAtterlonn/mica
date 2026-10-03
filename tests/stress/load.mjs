@@ -45,7 +45,7 @@ const Records = collection(
     _id: string(),
     category: number(),
     score: number(),
-    payload: encoded().select(false),
+    payload: encoded(),
   },
   (t) => [index('category').on(t.category)],
 );

@@ -25,8 +25,8 @@ const Records = collection('records', {
   _id: string(),
   name: string(),
   amount: number(),
-  secret: secret().select(false),
-  profile: object({ name: string(), secret: secret().select(false) }),
+  secret: secret(),
+  profile: object({ name: string(), secret: secret() }),
   rows: array(object({ amount: number() })),
   counts: map(number()),
 });
@@ -67,10 +67,7 @@ test('aggregation branches snapshot stages and options without executing them', 
     { $limit: 3 },
     { $skip: 1 },
   ]);
-  assert.deepEqual(calls[2]!.pipeline, [
-    { $match: { amount: { $gt: 10 } } },
-    { $project: { secret: 0, 'profile.secret': 0 } },
-  ]);
+  assert.deepEqual(calls[2]!.pipeline, [{ $match: { amount: { $gt: 10 } } }]);
   assert.deepEqual(calls[0], calls[3]);
   assert.equal(calls[0]!.options.collation.locale, 'en');
   assert.equal(calls[0]!.options.batchSize, 2);

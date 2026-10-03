@@ -2,11 +2,13 @@
 
 ## Unreleased
 
+Removed the schema-level `select()` modifier and implicit field exclusions. Reads now return all fields by default; use explicit query projections to shape results and exclude codec values before decoding. `$inferSelect` describes the full application shape.
+
 Initial public repository preparation. The current library includes typed schemas and queries, codecs, explicit indexes and validators, CRUD and bulk operations, projected cursors/chunks, positional updates, restricted upserts, transactions, deadlines, and structured validation errors.
 
 No stable release or compatibility guarantee has been declared.
 
-Added an immutable typed aggregation builder with inferred results through `match`, `project`, `group`, `sort`, `skip`, `limit`, and `count`. Numeric accumulators, projection-aware codecs, default field exclusions, execution options, and explicit sessions are supported.
+Added an immutable typed aggregation builder with inferred results through `match`, `project`, `group`, `sort`, `skip`, `limit`, and `count`. Numeric accumulators, projection-aware codecs, execution options, and explicit sessions are supported.
 
 Aggregation matches accept ObjectId strings and convert them using the current stage's schema, including nested predicates and matches after grouping. Malformed ObjectId strings fail before querying; string fields and output types remain unchanged.
 

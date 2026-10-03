@@ -48,13 +48,12 @@ test('maps validate dynamic keys, encode entries, and preserve defaults and deco
     );
 });
 
-test('map definitions and updates preserve selection and immutable boundaries', () => {
+test('map definitions and updates preserve projection and immutable boundaries', () => {
   assert.throws(() => map(string().optional()), /optional/);
-  assert.throws(() => map(object({ hidden: string().select(false) })), /map container/);
   const fields = {
     counts: map(number()),
     fixed: map(number().immutable()),
-    hidden: map(string()).select(false),
+    hidden: map(string()),
   };
   assert.deepEqual(
     encodeUpdate(fields, { $inc: { 'counts.a': 1 }, $unset: { 'counts.b': 1 } }, now),
@@ -62,7 +61,7 @@ test('map definitions and updates preserve selection and immutable boundaries', 
   );
   assert.throws(() => encodeUpdate(fields, { $set: { 'fixed.a': 1 } }, now), /immutable/);
   assert.throws(() => encodeUpdate(fields, { $set: { fixed: {} } }, now), /immutable/);
-  assert.deepEqual(readProjection(fields, undefined), { hidden: 0 });
+  assert.deepEqual(readProjection(fields, undefined), {});
   assert.deepEqual(readProjection(fields, { 'hidden.a': 1 }), { 'hidden.a': 1 });
   assert.throws(() => encodeUpdate(fields, { $push: { counts: 1 } }, now), /array/);
   assert.throws(() => checkFilter(fields, { counts: { $size: 1 } }), /array/);

@@ -227,15 +227,15 @@ collection('index_depth', Deep.$fields, (t) => {
   return [index('whole_deep_object').on(t['a.b.c.d.e'])];
 });
 
-// Field visibility affects reads only. Protected paths affect updates only.
+// Immutable fields remain readable and constrain updates only.
 const Private = collection('private', {
-  _id: objectId().auto().select(false),
+  _id: objectId().auto(),
   name: string(),
-  token: string().select(false).immutable().optional().nullable().default('secret'),
-  profile: object({ label: string(), token: string().select(false), id: string().immutable() })
+  token: string().immutable().optional().nullable().default('secret'),
+  profile: object({ label: string(), token: string(), id: string().immutable() })
     .nullable()
     .optional(),
-  rows: array(object({ id: string().immutable(), token: string().select(false) })),
+  rows: array(object({ id: string().immutable(), token: string() })),
   locked: object({ mutableChild: string() }).immutable(),
   lockedArray: array(string()).immutable(),
 });
@@ -245,10 +245,8 @@ const privateDb = createDatabase({
   collections: { private: Private },
 });
 type PrivateRead = typeof Private.$inferSelect;
-// @ts-expect-error hidden fields are absent from default select inference
-const hiddenRead: PrivateRead['token'] = 'secret';
-// @ts-expect-error hidden IDs are also absent
-const hiddenId: PrivateRead['_id'] = new ObjectId();
+const readToken: PrivateRead['token'] = 'secret';
+const readId: PrivateRead['_id'] = new ObjectId();
 const storedToken: typeof Private.$inferStored.token = 'secret';
 privateDb.private.insertOne({
   name: 'name',
@@ -285,27 +283,22 @@ const ProtectedDeep = collection('protected_deep', {
 });
 // @ts-expect-error protected descendants below the dot-path budget still prevent replacement
 const deepProtected: typeof ProtectedDeep.$inferUpdate = { $set: { a: {} } };
-const inherited = customType({ base: () => string().immutable().select(false), metadata: {} })();
+const inherited = customType({ base: () => string().immutable(), metadata: {} })();
 expect<Equal<typeof inherited.$types.immutable, true>>();
-expect<Equal<typeof inherited.$types.selected, false>>();
-// @ts-expect-error selection metadata must be known at compile time
-string().select(Math.random() > 0.5);
+// @ts-expect-error schema-level selection is not part of the field API
+string().select(false);
 async function privateReads() {
   const plain = await privateDb.private.findOne({ token: 'allowed filter' });
   if (plain) {
-    // @ts-expect-error hidden by default
-    plain.token;
-    // @ts-expect-error recursively hidden
-    plain.profile?.token;
-    // @ts-expect-error hidden inside arrays
-    plain.rows[0]!.token;
+    plain.token satisfies string | null | undefined;
+    plain.profile?.token satisfies string | undefined;
+    plain.rows[0]!.token satisfies string;
     plain.rows[0]!.id satisfies string;
   }
   const excluded = await privateDb.private.findOne({}, { projection: { name: 0, _id: 1 } });
   if (excluded) {
     excluded._id satisfies ObjectId;
-    // @ts-expect-error exclusion does not opt hidden fields in
-    excluded.token;
+    excluded.token satisfies string | null | undefined;
     // @ts-expect-error excluded
     excluded.name;
   }
@@ -317,15 +310,13 @@ async function privateReads() {
     expect<Equal<typeof included.token, string | null | undefined>>();
     included.profile?.token satisfies string | undefined;
     included.rows[0]!.token satisfies string;
-    // @ts-expect-error hidden _id is not implicitly included
-    included._id;
+    included._id satisfies ObjectId;
   }
   const id = await privateDb.private.findOne({}, { projection: { _id: 1 } });
   if (id) id._id satisfies ObjectId;
   const empty = await privateDb.private.findOne({}, { projection: {} });
   if (empty) {
-    // @ts-expect-error empty projection retains defaults
-    empty.token;
+    empty.token satisfies string | null | undefined;
   }
 }
 void [storedToken, privateReads];
@@ -415,13 +406,11 @@ async function queryResults() {
   items[0]!._id;
   for await (const value of privateDb.private.cursor()) {
     value.name satisfies string;
-    // @ts-expect-error cursor reads hide tokens
-    value.token;
+    value.token satisfies string | null | undefined;
   }
   const item = await privateDb.private.cursor().next();
   if (item) {
-    // @ts-expect-error hidden in nested arrays
-    item.rows[0]!.token;
+    item.rows[0]!.token satisfies string;
   }
   const returned = await privateDb.private.findOneAndUpdate(
     {},
@@ -436,8 +425,7 @@ async function queryResults() {
   }
   const deleted = await privateDb.private.findOneAndDelete({}, { sort: [['name', -1]] });
   if (deleted) {
-    // @ts-expect-error default selection applies to deleted documents
-    deleted.token;
+    deleted.token satisfies string | null | undefined;
     deleted.name satisfies string;
   }
   (await db.products.exists()) satisfies boolean;
@@ -462,12 +450,9 @@ async function materializedReadsAndChunks() {
 
   for await (const batch of privateDb.private.chunks({}, { size: 50 })) {
     batch[0]!.name satisfies string;
-    // @ts-expect-error default-hidden ID remains hidden despite internal pagination
-    batch[0]!._id;
-    // @ts-expect-error default-hidden tokens remain hidden
-    batch[0]!.token;
-    // @ts-expect-error nested hidden fields are absent
-    batch[0]!.rows[0]!.token;
+    batch[0]!._id satisfies ObjectId;
+    batch[0]!.token satisfies string | null | undefined;
+    batch[0]!.rows[0]!.token satisfies string;
   }
   for await (const batch of privateDb.private.chunks(
     {},
@@ -479,7 +464,7 @@ async function materializedReadsAndChunks() {
   )) {
     expect<Equal<(typeof batch)[0]['token'], string | null | undefined>>();
     // @ts-expect-error internally fetched ID is not part of the result type
-    batch[0]!._id;
+    batch[0]!._id satisfies ObjectId;
     // @ts-expect-error not selected
     batch[0]!.name;
   }
@@ -522,14 +507,7 @@ const UpdateOperators = collection('update_operators', {
   defaulted: number().default(5),
   optional: number().optional().default(5),
   annotated: customType({ base: number, metadata: { unit: 'items' } })(),
-  encoded: encodedCounter()
-    .optional()
-    .nullable()
-    .default(1)
-    .min(0)
-    .max(100)
-    .integer()
-    .select(false),
+  encoded: encodedCounter().optional().nullable().default(1).min(0).max(100).integer(),
   wrapped: customType({ base: encodedCounter, metadata: {} })(),
   stringEncoded: customType({
     base: number,
@@ -611,8 +589,8 @@ const Discovery = collection('discovery', {
   optional: string().optional(),
   nullable: number().nullable().optional(),
   dates: array(date()),
-  hidden: string().select(false),
-  profile: object({ label: string(), hidden: string().select(false) }).optional(),
+  hidden: string(),
+  profile: object({ label: string(), hidden: string() }).optional(),
   rows: array(object({ label: string().optional(), tags: array(string()) })),
   matrix: array(array(number())),
   secret: encodedCounter(),

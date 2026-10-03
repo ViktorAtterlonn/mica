@@ -32,7 +32,7 @@ const Records = collection(
     status: enum_('draft', 'published').default('draft'),
     score: number().default(0),
     fixed: string().immutable(),
-    secret: encoded().select(false),
+    secret: encoded(),
     profile: object({ label: string(), count: number() }).nullable().optional(),
     nested: object({
       leaf: object({ leaf: string(), label: string(), secret: encoded() }),

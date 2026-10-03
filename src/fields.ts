@@ -20,7 +20,6 @@ export interface Definition {
   readonly validate?: (value: unknown) => boolean;
   readonly storedSchema?: JsonSchema;
   readonly optional?: boolean;
-  readonly selected?: boolean;
   readonly immutable?: boolean;
   readonly nullable?: boolean;
   readonly defaultValue?: () => unknown;
@@ -47,7 +46,6 @@ export interface FieldTypes {
   insert: unknown;
   kind: Kind;
   optional: boolean;
-  selected: boolean;
   immutable: boolean;
   codec: boolean;
   defaulted: boolean;
@@ -65,25 +63,7 @@ export type Fields = Record<string, AnyField>;
 
 export type Mode = 'app' | 'stored' | 'insert' | 'select';
 
-type SelectedValue<F extends AnyField> = F['$types']['children'] extends Fields
-  ? InferFields<F['$types']['children'], 'select'> | Extract<F['$types']['app'], null>
-  : F['$types']['element'] extends AnyField
-    ?
-        | (F['$types']['kind'] extends 'map'
-            ? Record<string, SelectedValue<F['$types']['element']>>
-            : SelectedValue<F['$types']['element']>[])
-        | Extract<F['$types']['app'], null>
-    : F['$types']['app'];
-
-type FieldValue<F extends AnyField, M extends Mode> = M extends 'select'
-  ? SelectedValue<F>
-  : F['$types'][Exclude<M, 'select'>];
-
-type VisibleKey<F extends AnyField, M extends Mode, K> = M extends 'select'
-  ? F['$types']['selected'] extends false
-    ? never
-    : K
-  : K;
+type FieldValue<F extends AnyField, M extends Mode> = F['$types'][M extends 'select' ? 'app' : M];
 
 type OptionalKey<F extends AnyField, M extends Mode> = F['$types']['optional'] extends true
   ? true
@@ -94,13 +74,9 @@ type OptionalKey<F extends AnyField, M extends Mode> = F['$types']['optional'] e
     : false;
 
 export type InferFields<F extends Fields, M extends Mode> = {
-  -readonly [
-    K in keyof F as OptionalKey<F[K], M> extends true ? never : VisibleKey<F[K], M, K>
-  ]: FieldValue<F[K], M>;
+  -readonly [K in keyof F as OptionalKey<F[K], M> extends true ? never : K]: FieldValue<F[K], M>;
 } & {
-  -readonly [
-    K in keyof F as OptionalKey<F[K], M> extends true ? VisibleKey<F[K], M, K> : never
-  ]?: FieldValue<F[K], M>;
+  -readonly [K in keyof F as OptionalKey<F[K], M> extends true ? K : never]?: FieldValue<F[K], M>;
 };
 
 /** Immutable builder. Phantom parameters describe values, never hydrated documents. */
@@ -114,7 +90,6 @@ export class Field<
   G extends boolean = false,
   C = unknown,
   E = unknown,
-  SEl extends boolean = true,
   IM extends boolean = false,
   X extends boolean = false,
 > implements AnyField {
@@ -124,7 +99,6 @@ export class Field<
     insert: I;
     kind: K;
     optional: O;
-    selected: SEl;
     immutable: IM;
     codec: X;
     defaulted: D;
@@ -139,26 +113,19 @@ export class Field<
     this.definition = Object.freeze({ ...definition });
   }
 
-  select<const V extends boolean>(
-    value: boolean extends V ? never : V,
-  ): Field<A, S, I, K, O, D, G, C, E, V, IM, X> {
-    if (typeof value !== 'boolean') throw new Error('select requires a boolean');
-    return new Field({ ...this.definition, selected: value });
-  }
-
-  immutable(): Field<A, S, I, K, O, D, G, C, E, SEl, true, X> {
+  immutable(): Field<A, S, I, K, O, D, G, C, E, true, X> {
     return new Field({ ...this.definition, immutable: true });
   }
 
-  optional(): Field<A, S, I, K, true, D, G, C, E, SEl, IM, X> {
+  optional(): Field<A, S, I, K, true, D, G, C, E, IM, X> {
     return new Field({ ...this.definition, optional: true });
   }
 
-  nullable(): Field<A | null, S | null, I | null, K, O, D, G, C, E, SEl, IM, X> {
+  nullable(): Field<A | null, S | null, I | null, K, O, D, G, C, E, IM, X> {
     return new Field({ ...this.definition, nullable: true });
   }
 
-  default(value: I | (() => I)): Field<A, S, I, K, O, true, G, C, E, SEl, IM, X> {
+  default(value: I | (() => I)): Field<A, S, I, K, O, true, G, C, E, IM, X> {
     return new Field({
       ...this.definition,
       defaultValue: typeof value === 'function' ? (value as () => I) : () => value,
@@ -166,11 +133,9 @@ export class Field<
   }
 
   min(
-    this: K extends 'string' | 'number' | 'array'
-      ? Field<A, S, I, K, O, D, G, C, E, SEl, IM, X>
-      : never,
+    this: K extends 'string' | 'number' | 'array' ? Field<A, S, I, K, O, D, G, C, E, IM, X> : never,
     value: number,
-  ): Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> {
+  ): Field<A, S, I, K, O, D, G, C, E, IM, X> {
     if (!Number.isFinite(value)) {
       throw new Error('min must be finite');
     }
@@ -185,11 +150,9 @@ export class Field<
   }
 
   max(
-    this: K extends 'string' | 'number' | 'array'
-      ? Field<A, S, I, K, O, D, G, C, E, SEl, IM, X>
-      : never,
+    this: K extends 'string' | 'number' | 'array' ? Field<A, S, I, K, O, D, G, C, E, IM, X> : never,
     value: number,
-  ): Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> {
+  ): Field<A, S, I, K, O, D, G, C, E, IM, X> {
     if (!Number.isFinite(value)) {
       throw new Error('max must be finite');
     }
@@ -204,9 +167,9 @@ export class Field<
   }
 
   pattern(
-    this: K extends 'string' ? Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> : never,
+    this: K extends 'string' ? Field<A, S, I, K, O, D, G, C, E, IM, X> : never,
     value: RegExp,
-  ): Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> {
+  ): Field<A, S, I, K, O, D, G, C, E, IM, X> {
     if (value.flags) {
       throw new Error('Phase 0 patterns must have no flags');
     }
@@ -215,18 +178,18 @@ export class Field<
   }
 
   integer(
-    this: K extends 'number' ? Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> : never,
-  ): Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> {
+    this: K extends 'number' ? Field<A, S, I, K, O, D, G, C, E, IM, X> : never,
+  ): Field<A, S, I, K, O, D, G, C, E, IM, X> {
     return new Field({ ...this.definition, integer: true });
   }
 
   auto(
-    this: K extends 'objectId' ? Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> : never,
-  ): Field<A, S, I, K, O, D, true, C, E, SEl, IM, X> {
+    this: K extends 'objectId' ? Field<A, S, I, K, O, D, G, C, E, IM, X> : never,
+  ): Field<A, S, I, K, O, D, true, C, E, IM, X> {
     return new Field({ ...this.definition, generated: 'id' });
   }
 
-  references(target: () => AnyField): Field<A, S, I, K, O, D, G, C, E, SEl, IM, X> {
+  references(target: () => AnyField): Field<A, S, I, K, O, D, G, C, E, IM, X> {
     return new Field({ ...this.definition, reference: target });
   }
 }
@@ -269,10 +232,6 @@ export function object<const F extends Fields>(fields: F): ObjectField<F> {
 }
 
 export function array<F extends AnyField>(element: F) {
-  if (element.definition.selected === false) {
-    throw new Error('Mark the array container select(false), not its element');
-  }
-
   if (element.definition.optional) {
     throw new Error('Array elements cannot be optional');
   }
@@ -292,19 +251,8 @@ export function array<F extends AnyField>(element: F) {
 
 /** Dynamic entries are atomic paths; values retain their full schema and codecs. */
 export function map<F extends AnyField>(value: F) {
-  function hasHidden(field: AnyField): boolean {
-    return (
-      field.definition.selected === false ||
-      Object.values(field.definition.fields ?? {}).some(hasHidden) ||
-      !!(field.definition.element && hasHidden(field.definition.element))
-    );
-  }
   if (value.definition.optional)
     throw new Error('Map values cannot be optional; keys may be omitted');
-  if (hasHidden(value))
-    throw new Error(
-      'Mark the map container select(false); hidden dynamic descendants cannot be projected safely',
-    );
   return new Field<
     Record<string, F['$types']['app']>,
     Record<string, F['$types']['stored']>,
@@ -347,7 +295,6 @@ type CustomField<B extends AnyField, S, X extends boolean = B['$types']['codec']
   B['$types']['generated'],
   B['$types']['children'],
   B['$types']['element'],
-  B['$types']['selected'],
   B['$types']['immutable'],
   X
 >;

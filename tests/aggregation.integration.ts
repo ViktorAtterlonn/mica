@@ -109,7 +109,7 @@ test('aggregation groups, filters, projects and paginates with native MongoDB se
   await assert.rejects(db.sales.aggregate({ hint: 'nonexistent' }).toArray(), MongoServerError);
 });
 
-test('aggregation respects hidden fields and decodes only surviving projected fields', async (t) => {
+test('aggregation returns all fields by default and decodes only surviving projected fields', async (t) => {
   let decodes = 0;
   const encrypted = customType({
     base: string,
@@ -125,9 +125,9 @@ test('aggregation respects hidden fields and decodes only surviving projected fi
   const Records = collection('records', {
     _id: string(),
     name: string(),
-    secret: encrypted().select(false),
-    profile: object({ label: string(), secret: encrypted().select(false) }),
-    rows: array(object({ label: string(), secret: encrypted().select(false) })),
+    secret: encrypted(),
+    profile: object({ label: string(), secret: encrypted() }),
+    rows: array(object({ label: string(), secret: encrypted() })),
   });
   const db = createDatabase({
     uri: uri!,
@@ -144,17 +144,24 @@ test('aggregation respects hidden fields and decodes only surviving projected fi
     rows: [{ label: 'row', secret: 'array' }],
   });
   const base = db.records.aggregate();
-  const selected = {
+  const full = {
     _id: 'one',
     name: 'record',
-    profile: { label: 'profile' },
-    rows: [{ label: 'row' }],
+    secret: 'top',
+    profile: { label: 'profile', secret: 'nested' },
+    rows: [{ label: 'row', secret: 'array' }],
   };
-  assert.deepEqual(await base.toArray(), [selected]);
-  assert.deepEqual(await base.project({}).toArray(), [selected]);
+  assert.deepEqual(await base.toArray(), [full]);
+  assert.deepEqual(await base.project({}).toArray(), [full]);
   assert.deepEqual(await base.project({ name: 0 }).toArray(), [
-    { _id: 'one', profile: { label: 'profile' }, rows: [{ label: 'row' }] },
+    { _id: 'one', secret: 'top', profile: full.profile, rows: full.rows },
   ]);
+  assert.equal(decodes, 9);
+  decodes = 0;
+  assert.deepEqual(
+    await base.project({ secret: 0, 'profile.secret': 0, 'rows.secret': 0 }).toArray(),
+    [{ _id: 'one', name: 'record', profile: { label: 'profile' }, rows: [{ label: 'row' }] }],
+  );
   assert.equal(decodes, 0);
   assert.deepEqual(await base.project({ secret: 1, _id: 0 }).toArray(), [{ secret: 'top' }]);
   assert.deepEqual(

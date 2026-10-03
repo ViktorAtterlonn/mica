@@ -36,20 +36,19 @@ test('find arrays, explicit cursors, and projected _id chunks', async (t) => {
     },
   });
   const Rows = collection('rows', {
-    _id: objectId().auto().select(false),
+    _id: objectId().auto(),
     name: string(),
     group: string(),
-    token: secret().select(false),
-    profile: object({ label: string(), token: secret().select(false) }),
+    token: secret(),
+    profile: object({ label: string(), token: secret() }),
   });
-  const VisibleRows = collection('rows', { ...Rows.$fields, _id: objectId().auto() });
   const client = new MongoClient(uri, { monitorCommands: true });
   const commands: { name: string; command: Document }[] = [];
   client.on('commandStarted', (e) => commands.push({ name: e.commandName, command: e.command }));
   const db = createDatabase({
     client,
     database: 'mica_chunks',
-    collections: { rows: Rows, visibleRows: VisibleRows },
+    collections: { rows: Rows },
   });
   t.after(() => db.close());
   await db.connect();
@@ -85,7 +84,7 @@ test('find arrays, explicit cursors, and projected _id chunks', async (t) => {
       assert.deepEqual(await db.rows.find({ name: 'absent' }), []);
       const count = commands.length;
       const cursor = db.rows
-        .cursor({ group: 'scan' }, { projection: { name: 1 } })
+        .cursor({ group: 'scan' }, { projection: { name: 1, _id: 0 } })
         .sort({ _id: 1 })
         .limit(1);
       assert.equal(commands.length, count);
@@ -97,7 +96,7 @@ test('find arrays, explicit cursors, and projected _id chunks', async (t) => {
   );
 
   await t.test(
-    'chunks are lazy bounded pages, honor hidden fields, and issue no count or skip',
+    'chunks are lazy bounded pages, return all fields, and issue no count or skip',
     async () => {
       decodes = 0;
       const before = commands.length;
@@ -113,11 +112,11 @@ test('find arrays, explicit cursors, and projected _id chunks', async (t) => {
         Array.from({ length: 7 }, (_, n) => `row-${n + 1}`),
       );
       for (const row of batches.flat()) {
-        assert(!('_id' in row));
-        assert(!('token' in row));
-        assert(!('token' in row.profile));
+        assert(row._id instanceof ObjectId);
+        assert.equal(row.token, row.name.replace('row-', 'token-'));
+        assert.equal(row.profile.token, row.name.replace('row-', 'nested-'));
       }
-      assert.equal(decodes, 0);
+      assert.equal(decodes, 14);
       const pageCommands = commands.slice(before);
       assert(!pageCommands.some((e) => e.name === 'aggregate' || e.name === 'count'));
       const finds = pageCommands.filter((e) => e.name === 'find');
@@ -126,7 +125,7 @@ test('find arrays, explicit cursors, and projected _id chunks', async (t) => {
         assert.deepEqual(command.sort, new Map([['_id', 1]]));
         assert.equal(command.limit, 3);
         assert.equal(command.skip, undefined);
-        assert.deepEqual(command.projection, { token: 0, 'profile.token': 0 });
+        assert.deepEqual(command.projection, {});
       }
       assert(finds[1]!.command.filter.$and[1]._id.$gt.equals(id(3)));
     },
@@ -160,13 +159,11 @@ test('find arrays, explicit cursors, and projected _id chunks', async (t) => {
       }
       const values = (
         await collect(
-          db.visibleRows.chunks({ group: 'scan' }, { size: 2, projection: { name: 1, _id: 0 } }),
+          db.rows.chunks({ group: 'scan' }, { size: 2, projection: { name: 1, _id: 0 } }),
         )
       ).flat();
       assert(values.every((row) => !('_id' in row)));
-      const ordinary = (
-        await collect(db.visibleRows.chunks({ group: 'scan' }, { size: 2 }))
-      ).flat();
+      const ordinary = (await collect(db.rows.chunks({ group: 'scan' }, { size: 2 }))).flat();
       assert(ordinary.every((row) => row._id instanceof ObjectId));
     },
   );
@@ -189,7 +186,7 @@ test('find arrays, explicit cursors, and projected _id chunks', async (t) => {
         db.rows.chunks({ _id: id(4) }, { size: 1, afterId: id(2), projection: { name: 1 } }),
       )
     ).flat();
-    assert.deepEqual(exact, [{ name: 'row-4' }]);
+    assert.deepEqual(exact, [{ _id: id(4), name: 'row-4' }]);
     assert.deepEqual(
       await collect(db.rows.chunks({ _id: id(2) }, { size: 1, afterId: id(2) })),
       [],

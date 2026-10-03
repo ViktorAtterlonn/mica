@@ -47,7 +47,7 @@ export const Entity${i} = collection('entity_${i}', {
   status: enum_('draft', 'published').default('draft'),
   score: number().default(0),
   fixed: string().immutable(),
-  secret: encoded().select(false),
+  secret: encoded(),
   profile: object({ label: string(), count: number() }).nullable().optional(),
   nested: ${nested},
   rows: array(object({ label: string(), score: number(), secret: encoded() })),
@@ -68,15 +68,13 @@ type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B 
 function expect<T extends true>() {}
 expect<Equal<typeof Entity${i}.$inferStored.secret, Binary>>();
 expect<Equal<typeof Entity${i}.$inferInsert.secret, string>>();
-// @ts-expect-error hidden fields are absent from default selection
-type Hidden = typeof Entity${i}.$inferSelect.secret;
+expect<Equal<typeof Entity${i}.$inferSelect.secret, string>>();
 
 const filter: Filter<typeof Entity${i}.$fields> = { status: 'published', 'rows.score': { $gte: 1 } };
 export async function queries() {
   const full = await db.c${i}.findOne({ field${i}: 'own field' });
   full?.nested.leaf;
-  // @ts-expect-error hidden codec output remains private by default
-  full?.secret;
+  full?.secret satisfies string | undefined;
   const selected = (await db.c${i}.find(filter, {
     projection: { title: 1, secret: 1, 'profile.label': 1, 'rows.label': 1, _id: 0 },
   }))[0]!;

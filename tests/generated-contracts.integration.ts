@@ -144,9 +144,7 @@ test('generated schema, projection and write contracts agree with independent na
       `seed=${seed} case=${caseId} ${kind}/${layout}/${optional ? 'nullable' : 'required'}`,
       async () => {
         const next = random(caseId);
-        const hiddenId = optional;
-        const hiddenNote = optional && (layout === 'object' || layout === 'array');
-        const note = hiddenNote ? string().default('note').select(false) : string().default('note');
+        const note = string().default('note');
         const valueField = leaf(kind, optional && layout !== 'map');
         const payload =
           layout === 'scalar'
@@ -157,11 +155,11 @@ test('generated schema, projection and write contracts agree with independent na
                 ? array(object({ value: valueField, note }).nullable())
                 : map(leaf(kind, false));
         const Schema = collection(`actual_${caseId}`, {
-          _id: hiddenId ? string().select(false) : string(),
+          _id: string(),
           group: enum_('a', 'b'),
           score: number().integer().min(-1000).max(1000).default(0),
           owner: objectId(),
-          secret: encoded().select(false),
+          secret: encoded(),
           tags: array(string()),
           payload,
         });
@@ -233,29 +231,24 @@ test('generated schema, projection and write contracts agree with independent na
             );
           await compareStorage();
 
-          const hidden = { secret: 0, ...(hiddenNote ? { 'payload.note': 0 } : {}) };
-          const defaults = { ...hidden, ...(hiddenId ? { _id: 0 } : {}) };
-          const projections: { request?: Document; effective: Document }[] = [
-            { effective: defaults },
-            { request: {}, effective: defaults },
-            { request: { _id: 1 }, effective: { _id: 1 } },
-            { request: { _id: 0 }, effective: { ...defaults, _id: 0 } },
-            { request: { payload: 1, _id: 0 }, effective: { payload: 1, _id: 0 } },
-            { request: { secret: 1 }, effective: { secret: 1, ...(hiddenId ? { _id: 0 } : {}) } },
-            { request: { tags: 0, _id: 1 }, effective: { tags: 0, ...hidden } },
+          const projections: (Document | undefined)[] = [
+            undefined,
+            {},
+            { _id: 1 },
+            { _id: 0 },
+            { payload: 1, _id: 0 },
+            { secret: 1 },
+            { tags: 0, _id: 1 },
           ];
           if (layout === 'object' || layout === 'array')
-            projections.push({
-              request: { 'payload.value': 1, _id: 0 },
-              effective: { 'payload.value': 1, _id: 0 },
-            });
-          for (const { request, effective } of projections) {
+            projections.push({ 'payload.value': 1, _id: 0 });
+          for (const request of projections) {
             const options = {
               ...(request ? { projection: request } : {}),
               sort: { _id: 1 as const },
             };
             const expected = await application
-              .find({}, { projection: effective, sort: { _id: 1 } })
+              .find({}, { projection: request ?? {}, sort: { _id: 1 } })
               .toArray();
             assert.deepEqual(await db.records.find({}, options as never), expected);
             assert.deepEqual(await db.records.cursor({}, options as never).toArray(), expected);
@@ -277,7 +270,10 @@ test('generated schema, projection and write contracts agree with independent na
             assert.deepEqual(
               await projected.toArray(),
               await application
-                .aggregate([{ $sort: { _id: 1 } }, { $project: effective }])
+                .aggregate([
+                  { $sort: { _id: 1 } },
+                  ...(request && Object.keys(request).length ? [{ $project: request }] : []),
+                ])
                 .toArray(),
             );
           }

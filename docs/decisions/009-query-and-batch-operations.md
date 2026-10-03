@@ -4,7 +4,7 @@
 
 The collection interface now exposes `find`, `findOne`, `exists`, `countDocuments`, `insertOne`, `insertMany`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `findOneAndUpdate`, `findOneAndDelete`, and `bulkWrite`.
 
-Collection operations live in `src/collection.ts`; `src/database.ts` owns connection lifecycle and binding. Every method uses the same field definitions, filter checks, insertion/update codecs, selection defaults, and immutable-path enforcement. Options are explicitly supported and validated rather than forwarded wholesale to the driver. The raw MongoClient remains the deliberate escape route.
+Collection operations live in `src/collection.ts`; `src/database.ts` owns connection lifecycle and binding. Every method uses the same field definitions, filter checks, insertion/update codecs, explicit projection checks, and immutable-path enforcement. Options are explicitly supported and validated rather than forwarded wholesale to the driver. The raw MongoClient remains the deliberate escape route.
 
 ## Reads and cursors
 
@@ -16,7 +16,7 @@ The cursor supports `next()`, `toArray()`, `for await...of`, `close()`, and `clo
 
 Consumption is sequential. Overlapping consumption rejects; an active iterator owns the cursor until completed or closed. `toArray()` collects remaining results, so consuming one item with `next()` first excludes that item from the resulting array. Early loop exit, exhaustion, and query/codec failures close the cursor. Close is terminal; subsequent reads return null/empty results. Configure before consumption. Close an unused cursor explicitly. The connection must be ready when creating a cursor and before reading an open cursor.
 
-`findOne` also supports sorting. Read methods use the projection behavior from [ADR 008](008-selection-and-immutable-fields.md): default exclusions happen on the server before decoding; explicit top-level inclusion opts into complete values. Returned values and cursor elements infer the selected application shape.
+`findOne` also supports sorting. Read methods use the projection behavior from [ADR 019](019-nested-projections.md): explicit projections happen on the server before decoding; unprojected reads return the complete application shape. Returned values and cursor elements infer the selected application shape.
 
 Sorts accept objects or ordered `[path, 1 | -1]` pairs and share the filter path budget. Ordered pairs preserve compound order even for numeric-looking field names. Unknown paths, duplicate pairs, other directions, and codec-backed fields or their containers are rejected. Sorting ciphertext would not represent application-value ordering. `skip` and `limit` are nonnegative safe integers; zero limit means no limit. `batchSize` is a positive safe integer. Use a unique final sort key such as `_id` for stable ordering when paginating.
 

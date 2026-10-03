@@ -12,7 +12,7 @@ Mica is in early development. Security fixes currently target the latest default
 
 ## Boundaries
 
-Mica is not an authorization layer. Applications must authorize callers and supply appropriate tenant/resource filters. Projection defaults and immutable field checks do not restrict raw driver access. Install generated validators explicitly when relying on server-side stored-value constraints.
+Mica is not an authorization layer. Applications must authorize callers and supply appropriate tenant/resource filters. Projections and immutable field checks do not restrict raw driver access. Install generated validators explicitly when relying on server-side stored-value constraints.
 
 Custom codecs are application code. Applications own key storage, rotation, access controls, and the handling of decoded values. Example cryptography is for demonstrating the codec boundary, not a key-management system.
 

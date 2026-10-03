@@ -8,7 +8,7 @@ MongoDB operates on stored values. Grouping initially accepts a scalar field ref
 
 Match inputs accept ObjectIds or 24-character hexadecimal strings on ObjectId fields. Conversion follows the evolving stage schema, never a guess based on value contents or the original collection's `_id`. It covers comparison operands, membership, nested literals, and nested/logical predicates; structural operands are preserved. Invalid ObjectId strings fail before execution. This is an aggregation-input convenience only: ordinary queries/writes, raw operations, codec rules, and returned ObjectId types retain their contracts.
 
-Selection defaults are materialized in server projections before decoding. Inclusion opts into hidden fields; group references explicitly opt into codec-free values. Group outputs do not inherit an unrelated source field's codec, even when they share its name. These rules are conveniences within Mica, not database authorization.
+All surviving fields are returned unless explicitly projected away. Codecs run only for returned fields. Group outputs do not inherit an unrelated source field’s codec, even when they share its name.
 
 The builder validates stages and execution options before querying. It retains native session, deadline, cancellation, and error behavior and closes its internal cursor after execution. Unlike find's unlimited zero limit, the aggregation limit must be positive. Count on empty input produces no document.
 

@@ -24,4 +24,4 @@ The demo creates a uniquely named database, inserts and updates synthetic data, 
 npm run test:integration
 ```
 
-The task workflow test checks concurrent requests, tenant filtering, rollback on an outbox failure, default-hidden fields, and projected exports. The workflow records events but does not deliver them externally.
+The task workflow test checks concurrent requests, tenant filtering, rollback on an outbox failure, complete default reads, and projected exports. The workflow records events but does not deliver them externally.

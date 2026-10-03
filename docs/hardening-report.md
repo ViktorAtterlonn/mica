@@ -8,7 +8,7 @@ The [API contract audit](api-contract-audit.md) records the first correctness pa
 
 ## Persistence evidence
 
-Integration tests cover CRUD and bulk operations, codecs, constraints, projections, map and positional updates, restricted upserts, concurrent counters, transaction conflicts and retries, rollback, TTL expiration, and connection recovery. Typed aggregation checks grouping, numeric accumulators, nested projections, hidden fields, codec decoding, ordered sorts, sessions, deadlines, and cancellation. A generic task workflow verifies that a document transition and outbox insertion commit together.
+Integration tests cover CRUD and bulk operations, codecs, constraints, projections, map and positional updates, restricted upserts, concurrent counters, transaction conflicts and retries, rollback, TTL expiration, and connection recovery. Typed aggregation checks grouping, numeric accumulators, nested projections, codec decoding, ordered sorts, sessions, deadlines, and cancellation. A generic task workflow verifies that a document transition and outbox insertion commit together.
 
 The generated suite compares 64 schema combinations with independently constructed native-driver storage and application-value collections. It exercises 480 projection configurations across five read surfaces, defaults, nulls, nested codecs, seeded updates, returned documents, bulk writes, aggregation, and ObjectId matching. Invalid-input regressions verify that validation runs before commands are sent. Seeds and case numbers make failures replayable; this is a bounded matrix, not exhaustive fuzzing.
 

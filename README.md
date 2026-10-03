@@ -13,7 +13,7 @@ Mica runs on the official MongoDB driver and returns plain objects. Database ope
 Mica carries your schema's types through the data you insert, the queries you write, and the results you read.
 
 - **Type safety across supported operations.** Infer insert, selected, and stored types from one schema. Check field paths, filter values, and updates against that same declaration.
-- **Projections that shape the result type.** Select only `title`, and TypeScript knows the result contains only `title`. Nested projections and default-hidden fields participate in inference too.
+- **Projections that shape the result type.** Select only `title`, and TypeScript knows the result contains only `title`. Nested object and array projections participate in inference too.
 - **Custom fields with codecs and metadata.** Define reusable fields that convert between application and stored values, attach meaning such as `encrypted` or `translatable`, or do both.
 - **Drizzle-inspired syntax.** Compose entities from field builders such as `string().optional()` and `enum_('open', 'done').default('open')`, then export them from ordinary modules.
 
@@ -104,7 +104,7 @@ Add a codec's `encode`, `decode`, and `storedSchema` to give a custom field a di
 
 - Inferred insert, selected, stored, filter, update, and projection types.
 - Embedded objects, arrays, dynamic maps, custom values, defaults, and constraints.
-- Explicit field selection and immutable fields.
+- Explicit query projections and immutable fields.
 - CRUD, bulk writes, distinct values, cursors, and projected chunks.
 - A typed aggregation builder with inferred results through filtering, projection, grouping, and sorting.
 - Atomic update operators, positional updates, typed array-filter helpers, and validated upserts.
@@ -133,7 +133,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for focused checks and [the examples guid
 - Query paths have a five-level traversal budget; map entries are atomic paths.
 - `$addToSet` supports scalar values without codecs. `$pull` also supports embedded-object predicates.
 - Codec-backed values cannot be assumed to support application-value comparisons.
-- `select(false)` and `immutable()` are toolkit behavior, not database authorization.
+- Projections and `immutable()` are toolkit behavior, not database authorization.
 - Validators and indexes are not installed automatically. Raw driver access bypasses toolkit behavior.
 - Aggregation supports a [defined set of read stages](docs/api.md#aggregation); arbitrary expressions, joins, and write stages require the raw driver.
 - Update pipelines, replacement methods, population, and document lifecycle hooks are not part of the current API.
