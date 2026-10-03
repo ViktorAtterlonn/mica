@@ -8,7 +8,7 @@ export interface CollectionSchema<F extends Fields = Fields> {
   readonly $name: string;
   readonly $fields: F;
   readonly $indexes: IndexDescription[];
-  readonly $inferSelect: InferFields<F, 'select'>;
+  readonly $inferSelect: InferFields<F, 'app'>;
   readonly $inferInsert: InferFields<F, 'insert'>;
   readonly $inferStored: InferFields<F, 'stored'>;
   readonly $inferUpdate: Update<F>;

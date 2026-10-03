@@ -156,5 +156,5 @@ export interface Aggregation<F extends Fields> {
             ? never
             : unknown),
   ): Aggregation<{ [P in K]: Field<number, number, number, 'number'> }>;
-  toArray(): Promise<InferFields<F, 'select'>[]>;
+  toArray(): Promise<InferFields<F, 'app'>[]>;
 }

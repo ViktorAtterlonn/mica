@@ -61,9 +61,9 @@ export interface AnyField {
 
 export type Fields = Record<string, AnyField>;
 
-export type Mode = 'app' | 'stored' | 'insert' | 'select';
+export type Mode = 'app' | 'stored' | 'insert';
 
-type FieldValue<F extends AnyField, M extends Mode> = F['$types'][M extends 'select' ? 'app' : M];
+type FieldValue<F extends AnyField, M extends Mode> = F['$types'][M];
 
 type OptionalKey<F extends AnyField, M extends Mode> = F['$types']['optional'] extends true
   ? true

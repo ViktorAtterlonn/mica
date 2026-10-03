@@ -291,8 +291,8 @@ const ProtectedDeep = collection('protected_deep', {
 const deepProtected: typeof ProtectedDeep.$inferUpdate = { $set: { a: {} } };
 const inherited = customType({ base: () => string().immutable(), metadata: {} })();
 expect<Equal<typeof inherited.$types.immutable, true>>();
-// @ts-expect-error schema-level selection is not part of the field API
-string().select(false);
+// Schema-level selection is not part of the field API.
+expect<Equal<Extract<'select', keyof ReturnType<typeof string>>, never>>();
 async function privateReads() {
   const plain = await privateDb.private.findOne({ token: 'allowed filter' });
   if (plain) {
