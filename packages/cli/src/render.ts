@@ -1,5 +1,4 @@
 import type { SchemaChange, SchemaDiff } from '@mica/db/tooling';
-import type { CliCommand } from './arguments.js';
 
 const riskWarnings: [SchemaChange['risks'][number], string][] = [
   ['existing-data', 'Existing data may conflict. No data is scanned or migrated.'],
@@ -58,7 +57,13 @@ function renderChangeDetails(change: SchemaChange): string[] {
   }
 }
 
-export function renderDiff(diff: SchemaDiff, command: CliCommand): string {
+export function renderCheck(diff: SchemaDiff): string {
+  if (!diff.changes.length) return 'Schema is synchronized.';
+  const count = diff.changes.length;
+  return `Schema drift detected: ${count} difference${count === 1 ? '' : 's'}. Run mica diff for details.`;
+}
+
+export function renderDiff(diff: SchemaDiff, command: 'diff' | 'push'): string {
   const lines = [`Mica schema ${command}`, ''];
   for (const collection of diff.desired.collections) {
     lines.push(collection.name);
@@ -68,8 +73,6 @@ export function renderDiff(diff: SchemaDiff, command: CliCommand): string {
 
     for (const change of changes) {
       lines.push(`  ${describeChange(change)}`);
-      if (command === 'check') continue;
-
       lines.push(...renderChangeDetails(change));
       for (const [risk, warning] of riskWarnings) {
         if (change.risks.includes(risk)) lines.push(`      ! ${warning}`);

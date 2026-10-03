@@ -51,7 +51,7 @@ try {
       timeout: 180_000,
     });
   install('--omit=dev');
-  for (const name of ['tsx', 'esbuild', '@mica/cli'])
+  for (const name of ['tsx', 'esbuild', 'citty', '@clack/prompts', '@mica/cli'])
     assert(
       !existsSync(join(temporary, 'node_modules', name)),
       `${name} must not be installed with @mica/db`,
@@ -78,7 +78,10 @@ try {
   install();
   const installed = join(temporary, 'node_modules', '@mica', 'cli');
   const executable = join(temporary, 'node_modules', '.bin', 'mica');
-  assert.match(execFileSync(executable, ['--help'], { encoding: 'utf8' }), /mica check/);
+  assert.match(execFileSync(executable, ['--help'], { encoding: 'utf8' }), /check\|diff\|push/);
+  const pushHelp = execFileSync(executable, ['push', '--help'], { encoding: 'utf8' });
+  assert.match(pushHelp, /mica push/);
+  assert.match(pushHelp, /--yes/);
   writeFileSync(
     join(temporary, 'consumer.mjs'),
     `

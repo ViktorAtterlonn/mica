@@ -14,7 +14,8 @@ import { normalizeDeclarations } from '../packages/db/src/schema-normalize.js';
 import { introspectDatabase } from '../packages/db/src/schema-introspect.js';
 import { compareSchemas } from '../packages/db/src/schema-diff.js';
 import { applySchemaDiff } from '../packages/db/src/schema-push.js';
-import { runCli, type CliIO } from '../packages/cli/src/run.js';
+import { runCli } from '../packages/cli/src/commands.js';
+import type { CliIO } from '../packages/cli/src/terminal.js';
 
 const uri = process.env.MICA_TEST_URI;
 if (!uri) throw new Error('Run through the disposable integration runner');
@@ -54,14 +55,16 @@ async function fixture(name: string): Promise<string> {
 
 function capture(confirm?: () => Promise<boolean>) {
   const output: string[] = [],
-    errors: string[] = [];
+    errors: string[] = [],
+    progress: (string | undefined)[] = [];
   const io: CliIO = {
     out: (s) => output.push(s),
     error: (s) => errors.push(s),
     interactive: !!confirm,
+    progress: (message) => progress.push(message),
     ...(confirm ? { confirm } : {}),
   };
-  return { output, errors, io };
+  return { output, errors, progress, io };
 }
 
 test('real metadata diff → push → check; _id ignored and unrelated collections untouched', async () => {
@@ -214,21 +217,53 @@ test('CLI check/diff are read-only; confirmation defaults no; --yes and JSON sha
     try {
       const captured = capture();
       assert.equal(await runCli(['check'], captured.io, dir), 1);
+      assert.equal(
+        captured.output.at(-1),
+        'Schema drift detected: 3 differences. Run mica diff for details.',
+      );
       assert.equal(await runCli(['diff'], captured.io, dir), 0);
       const human = captured.output.at(-1);
+      assert.match(human!, /create missing collection/);
+      assert.match(human!, /create index mica_name/);
+      assert.match(human!, /database\s+null/);
       assert.equal(await runCli(['diff'], captured.io, dir), 0);
       assert.equal(captured.output.at(-1), human);
       assert.equal(await runCli(['push'], captured.io, dir), 1);
       assert.match(captured.errors.at(-1)!, /confirmation or --yes/);
       assert.equal(await runCli(['push'], capture(async () => false).io, dir), 1);
       assert.equal((await db.listCollections().toArray()).length, 0);
-      assert.equal(await runCli(['push', '--yes'], captured.io, dir), 0);
+      const unattended = capture(async () => {
+        throw new Error('--yes must never prompt');
+      });
+      assert.equal(await runCli(['push', '--yes'], unattended.io, dir), 0);
+      assert.deepEqual(unattended.progress, []);
       assert.equal(await runCli(['check', '--json'], captured.io, dir), 0);
       const json = JSON.parse(captured.output.at(-1)!);
       assert.deepEqual(json.changes, []);
       assert.equal(json.version, 1);
+      assert.deepEqual(captured.progress, []);
       await db.command({ collMod: 'records', validator: {} });
-      assert.equal(await runCli(['push'], capture(async () => true).io, dir), 0);
+      const interactive = capture(async () => {
+        assert.match(interactive.output.at(-1)!, /add validator/);
+        assert.equal(
+          (await introspectDatabase(db, ['records'])).collections[0]!.validator.schema,
+          null,
+        );
+        return true;
+      });
+      assert.equal(await runCli(['push'], interactive.io, dir), 0);
+      assert.deepEqual(interactive.progress, [
+        'Inspecting database schema',
+        undefined,
+        'Applying schema changes',
+        undefined,
+      ]);
+      interactive.progress.length = 0;
+      assert.equal(await runCli(['check'], interactive.io, dir), 0);
+      assert.equal(interactive.output.at(-1), 'Schema is synchronized.');
+      assert.equal(await runCli(['diff', '--json'], interactive.io, dir), 0);
+      assert.deepEqual(JSON.parse(interactive.output.at(-1)!).changes, []);
+      assert.deepEqual(interactive.progress, []);
       const child = spawnSync(
         process.execPath,
         [
@@ -240,7 +275,7 @@ test('CLI check/diff are read-only; confirmation defaults no; --yes and JSON sha
         { cwd: dir, encoding: 'utf8' },
       );
       assert.equal(child.status, 0, child.stderr);
-      assert.match(child.stdout, /0 differences/);
+      assert.equal(child.stdout, 'Schema is synchronized.\n');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

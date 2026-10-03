@@ -50,9 +50,11 @@ mica diff
 mica push
 ```
 
-- `check` concisely reports managed drift. It reads metadata only and suits CI.
+- `check` reports a single plain-text status line: `Schema is synchronized.` or `Schema drift detected: N differences. Run mica diff for details.` It reads metadata only and suits CI: exit `0` means synchronized, `1` means drift, and `2` means the command failed.
 - `diff` explains differences deterministically, showing database/code validator values and index definitions. It reads metadata only.
-- `push` displays the plan, warns about data compatibility and index risks, then asks `Apply changes? (y/N)`. Only `y` or `yes` confirms. Noninteractive use requires `--yes`.
+- `push` displays the plan, warns about data compatibility and index risks, then asks `Apply changes?` using Clack with **No selected by default**. Press Enter to decline, or select Yes to apply. Ctrl+C or closed input cancels without applying changes. Noninteractive use requires `--yes`.
+
+[Citty](https://github.com/unjs/citty) defines the three subcommands, parses their options, and generates help. [Clack](https://bomb.sh/docs/clack/packages/prompts/) provides interactive output, confirmation, and spinners during inspection and application. CI, redirected output, `check`, JSON output, and `push --yes` do not show spinners. Redirected output and CI remain plain text; `push --yes` prints its plan and result without prompting, even in a terminal. TypeScript config/schema loading continues to use `tsx`.
 
 Diff symbols: `+` needs creation, `-` needs removal, `~` needs modification, `!` requires attention. Unmanaged indexes are listed as preserved, separately from managed drift.
 
@@ -70,7 +72,7 @@ JSON uses the same versioned `SchemaDiff` as human output, including desired and
 | `1`  | `check`: drift or unsupported configuration; `push`: unsupported configuration, declined/unavailable confirmation, or drift remaining after application |
 | `2`  | Invalid arguments/configuration, schema loading failure, connection/metadata failure, or failed schema operation                                        |
 
-Use `mica --help` for syntax. CI's minimal read-only gate is:
+Use `mica --help` or command-specific help such as `mica push --help` for syntax. Put command options after the command. There are no command aliases or short option aliases. CI's minimal read-only gate is:
 
 ```sh
 mica check

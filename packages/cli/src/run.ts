@@ -1,30 +1,26 @@
 import { MongoClient } from 'mongodb';
-import { parseArguments, usage } from './arguments.js';
 import { loadConfig } from './config.js';
-import { renderDiff } from './render.js';
+import { renderCheck, renderDiff } from './render.js';
+import type { CliIO } from './terminal.js';
 import { applySchemaDiff, compareSchemas, introspectDatabase } from '@mica/db/tooling';
 
-export interface CliIO {
-  out(text: string): void;
-  error(text: string): void;
-  interactive: boolean;
-  confirm?(): Promise<boolean>;
+interface CommandOptions {
+  command: 'check' | 'diff' | 'push';
+  json: boolean;
+  yes: boolean;
 }
 
 /** 0 success, 1 drift/blocked/cancelled push, 2 configuration/connection/operation error. */
-export async function runCli(args: string[], io: CliIO, cwd = process.cwd()): Promise<number> {
-  if (args.length === 1 && args[0] === '--help') {
-    io.out(usage);
-    return 0;
-  }
-  const options = parseArguments(args);
-  if (!options) {
-    io.error(usage);
-    return 2;
-  }
+export async function runSchemaCommand(
+  options: CommandOptions,
+  io: CliIO,
+  cwd: string,
+): Promise<number> {
   const { command, json, yes } = options;
+  const interactiveOutput = io.interactive && command !== 'check' && !json && !yes;
   let client: MongoClient | undefined;
   try {
+    if (interactiveOutput) io.progress?.('Inspecting database schema');
     const { config, desired } = await loadConfig(cwd);
     client = new MongoClient(config.database.uri, { serverSelectionTimeoutMS: 5000 });
     await client.connect();
@@ -34,7 +30,12 @@ export async function runCli(args: string[], io: CliIO, cwd = process.cwd()): Pr
       desired.collections.map((c) => c.name),
     );
     const diff = compareSchemas(desired, actual);
-    io.out(json ? JSON.stringify(diff, null, 2) : renderDiff(diff, command));
+    if (interactiveOutput) io.progress?.();
+    let output: string;
+    if (json) output = JSON.stringify(diff, null, 2);
+    else if (command === 'check') output = renderCheck(diff);
+    else output = renderDiff(diff, command);
+    io.out(output, interactiveOutput ? 'plan' : 'plain');
     if (command === 'check') return diff.changes.length ? 1 : 0;
     if (command === 'diff' || !diff.changes.length) return 0;
     if (diff.changes.some((change) => change.kind === 'unsupported')) {
@@ -47,18 +48,21 @@ export async function runCli(args: string[], io: CliIO, cwd = process.cwd()): Pr
         return 1;
       }
       if (!(await io.confirm())) {
-        io.out('Cancelled. No changes were applied.');
+        io.out('Cancelled. No changes were applied.', 'cancel');
         return 1;
       }
     }
+    if (interactiveOutput) io.progress?.('Applying schema changes');
     const remaining = await applySchemaDiff(db, diff);
+    if (interactiveOutput) io.progress?.();
     if (remaining.changes.length) {
       io.error('Push finished but schema drift remains. Run mica diff to inspect it.');
       return 1;
     }
-    io.out('Schema matches after push.');
+    io.out('Schema matches after push.', interactiveOutput ? 'success' : 'plain');
     return 0;
   } catch (error) {
+    if (interactiveOutput) io.progress?.();
     const message = error instanceof Error ? error.message : String(error);
     const redacted = message.replace(/mongodb(?:\+srv)?:\/\/[^\s'"`]+/g, '[MongoDB URI]');
     io.error(`Mica: ${redacted}`);

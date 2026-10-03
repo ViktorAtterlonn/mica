@@ -16,7 +16,7 @@ import {
   emptyValidator,
   valueDifferences,
 } from '../packages/db/src/schema-diff.js';
-import { renderDiff } from '../packages/cli/src/render.js';
+import { renderCheck, renderDiff } from '../packages/cli/src/render.js';
 import { applySchemaDiff } from '../packages/db/src/schema-push.js';
 import type { DatabaseSchema } from '../packages/db/src/schema-model.js';
 import type { Db } from 'mongodb';
@@ -214,7 +214,11 @@ test('diff and output are deterministic, structured and retain both sides', () =
   assert.deepEqual(JSON.parse(JSON.stringify(diff)), diff);
   assert.equal(renderDiff(diff, 'diff'), renderDiff(compareSchemas(desired(), db), 'diff'));
   assert.match(renderDiff(diff, 'diff'), /\+ create index mica_name/);
-  assert.doesNotMatch(renderDiff(diff, 'check'), /keys/);
+  assert.equal(
+    renderCheck(diff),
+    'Schema drift detected: 1 difference. Run mica diff for details.',
+  );
+  assert.equal(renderCheck(compareSchemas(desired(), desired())), 'Schema is synchronized.');
 });
 
 test('declarations require an explicit registry with unique collection names', () => {

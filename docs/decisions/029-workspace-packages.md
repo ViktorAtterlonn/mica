@@ -7,7 +7,7 @@ Status: accepted. Supersedes ADR 028's single-package entry-point locations.
 Use a private pnpm workspace root with two packages:
 
 - `packages/db` publishes as `@mica/db`: runtime access, schemas, codecs, and the shared `@mica/db/tooling` engine. Its only production dependency is MongoDB.
-- `packages/cli` publishes as `@mica/cli`: the `mica` executable, `defineConfig`, config loading, confirmation, and rendering. It owns `tsx` and declares MongoDB directly because the command runner creates a client.
+- `packages/cli` publishes as `@mica/cli`: the `mica` executable, `defineConfig`, config loading, confirmation, and rendering. It owns Citty for commands, Clack for interactive presentation, and `tsx` for TypeScript loading. It declares MongoDB directly because the command runner creates a client. These dependencies stay out of `@mica/db`.
 
 The CLI consumes the database package through its public tooling export, never relative source imports. A `workspace:^` peer dependency expresses its supported database version; a workspace development dependency supplies it locally. pnpm rewrites these ranges when packing. Consumers install `@mica/db` as an application dependency and `@mica/cli` as a development dependency.
 

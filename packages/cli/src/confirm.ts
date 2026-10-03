@@ -1,17 +1,23 @@
-import { createInterface } from 'node:readline/promises';
+import { confirm, isCancel } from '@clack/prompts';
 import type { Readable, Writable } from 'node:stream';
 
 export async function confirmPush(input: Readable, output: Writable): Promise<boolean> {
-  const terminal = createInterface({ input, output });
+  if (input.readableEnded || input.destroyed) return false;
   const controller = new AbortController();
-  terminal.once('close', () => controller.abort());
+  const abort = () => controller.abort();
+  input.once('end', abort);
+  input.once('close', abort);
   try {
-    const answer = await terminal.question('Apply changes? (y/N) ', { signal: controller.signal });
-    return /^y(?:es)?$/i.test(answer.trim());
-  } catch (error) {
-    if (controller.signal.aborted) return false;
-    throw error;
+    const answer = await confirm({
+      message: 'Apply changes?',
+      initialValue: false,
+      input,
+      output,
+      signal: controller.signal,
+    });
+    return !isCancel(answer) && answer;
   } finally {
-    terminal.close();
+    input.off('end', abort);
+    input.off('close', abort);
   }
 }
